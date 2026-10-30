@@ -19,16 +19,19 @@ use Illuminate\Foundation\Bus\PendingDispatch;
  */
 final readonly class JobDispatcher
 {
-    public function __construct(private Config $config) {}
+    /** Seconds past the HTTP budget a job may spend on the claim and the settle before the worker kills it. */
+    private const int TIMEOUT_MARGIN = 15;
+
+    public function __construct(private Config $config, private HttpTransport $transport) {}
 
     public function delivery(string $deliveryId, int $expectedAttempt): void
     {
-        $this->route(new PendingDispatch(new DeliverWebhook($deliveryId, $expectedAttempt, $this->strandedAfter())));
+        $this->route(new PendingDispatch(new DeliverWebhook($deliveryId, $expectedAttempt, $this->strandedAfter(), $this->timeout())));
     }
 
     public function batch(string $batchId): void
     {
-        $this->route(new PendingDispatch(new DeliverBatch($batchId, $this->strandedAfter())));
+        $this->route(new PendingDispatch(new DeliverBatch($batchId, $this->strandedAfter(), $this->timeout())));
     }
 
     /** A delayed flush lets the batch window fill; an immediate one runs because the size was reached. */
@@ -60,5 +63,10 @@ final readonly class JobDispatcher
     private function strandedAfter(): int
     {
         return $this->config->positiveInt('stranded_after_seconds', 900);
+    }
+
+    private function timeout(): int
+    {
+        return $this->transport->timeoutBudgetSeconds() + self::TIMEOUT_MARGIN;
     }
 }

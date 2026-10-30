@@ -70,6 +70,11 @@ expect($report->retriesQueued)->toBe(1);
 
 Set `webhooks.retry.jitter` to `0` in your test environment to make the schedule exact.
 
+Signatures are timestamped by the signature package's `Cbox\WebhookSignature\Contracts\Clock`,
+not by Carbon. A frozen Carbon therefore never makes an outbound signature "from the
+future" for a receiver in the same process; if a test needs the signature timestamp to
+follow the frozen time as well, bind a `Clock` that reads `CarbonImmutable::now()`.
+
 Other helpers: `defineWebhookEvent($type, $group)` registers a catalog entry for the
 test; `fakeDnsForUrl($url)` fakes DNS for a URL you register some other way.
 

@@ -18,6 +18,7 @@ use Cbox\Webhooks\Monitoring\SpanContext;
 use Cbox\Webhooks\Support\Json;
 use Cbox\Webhooks\Support\Models;
 use Cbox\Webhooks\ValueObjects\AttemptResult;
+use Cbox\WebhookSignature\Contracts\Clock;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -44,6 +45,7 @@ final readonly class HttpDeliverer implements Deliverer
         private RateLimiter $rateLimiter,
         private Settlement $settlement,
         private Tracing $tracing,
+        private Clock $clock,
     ) {}
 
     public function deliver(string $deliveryId, int $expectedAttempt): ?AttemptResult
@@ -185,10 +187,14 @@ final readonly class HttpDeliverer implements Deliverer
     /**
      * Sign, add the transport headers, send inside a client span. The span
      * carries ids and the host, never the full URL: a path may hold a token.
+     *
+     * The signature timestamp comes from the signature package's own clock, so
+     * a receiver using that package in the same process (a host's test suite,
+     * typically with Carbon frozen) verifies what this side signed.
      */
     private function send(WebhookEndpoint $endpoint, string $messageId, string $type, string $sequence, int $attempt, string $body): TransportResult
     {
-        $timestamp = CarbonImmutable::now()->getTimestamp();
+        $timestamp = $this->clock->now();
 
         $headers = [
             ...Json::stringMap($endpoint->headers),

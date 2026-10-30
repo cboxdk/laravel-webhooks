@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Cbox\Webhooks\Jobs;
 
 use Cbox\Webhooks\Contracts\Deliverer;
-use Cbox\Webhooks\Delivery\HttpTransport;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -26,6 +25,10 @@ use Illuminate\Queue\InteractsWithQueue;
  * re-queue is suppressed; once the row counts as stranded, the lock has expired
  * and the rescue can actually happen. The deliverer's conditional claim is the
  * backstop for the case where both exist anyway.
+ *
+ * The timeout is fixed at dispatch from the transport's budget (connect plus
+ * read, plus a margin for the claim and the settle), because the worker reads
+ * it before `handle()` runs; a value set inside the job would never apply.
  */
 final class DeliverWebhook implements ShouldBeUnique, ShouldQueue, ShouldQueueAfterCommit
 {
@@ -44,9 +47,10 @@ final class DeliverWebhook implements ShouldBeUnique, ShouldQueue, ShouldQueueAf
         public readonly string $deliveryId,
         public readonly int $expectedAttempt,
         int $strandedAfterSeconds,
+        int $timeoutSeconds = 30,
     ) {
         $this->uniqueFor = $strandedAfterSeconds;
-        $this->timeout = 30;
+        $this->timeout = $timeoutSeconds;
     }
 
     public function uniqueId(): string
@@ -54,10 +58,8 @@ final class DeliverWebhook implements ShouldBeUnique, ShouldQueue, ShouldQueueAf
         return $this->deliveryId;
     }
 
-    public function handle(Deliverer $deliverer, HttpTransport $transport): void
+    public function handle(Deliverer $deliverer): void
     {
-        $this->timeout = $transport->timeoutBudgetSeconds() + 15;
-
         $deliverer->deliver($this->deliveryId, $this->expectedAttempt);
     }
 }

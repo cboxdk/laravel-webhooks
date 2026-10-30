@@ -13,7 +13,8 @@ use Illuminate\Queue\InteractsWithQueue;
 
 /**
  * One request for one batch. Same rules as {@see DeliverWebhook}: one try,
- * unique by batch id, the flusher's conditional grouping is the claim.
+ * unique by batch id, the flusher's conditional grouping is the claim, the
+ * timeout is fixed at dispatch from the transport's budget.
  */
 final class DeliverBatch implements ShouldBeUnique, ShouldQueue, ShouldQueueAfterCommit
 {
@@ -22,15 +23,16 @@ final class DeliverBatch implements ShouldBeUnique, ShouldQueue, ShouldQueueAfte
 
     public int $tries = 1;
 
-    public int $timeout = 45;
+    public int $timeout;
 
     public int $uniqueFor;
 
     public bool $failOnTimeout = true;
 
-    public function __construct(public readonly string $batchId, int $strandedAfterSeconds)
+    public function __construct(public readonly string $batchId, int $strandedAfterSeconds, int $timeoutSeconds = 45)
     {
         $this->uniqueFor = $strandedAfterSeconds;
+        $this->timeout = $timeoutSeconds;
     }
 
     public function uniqueId(): string

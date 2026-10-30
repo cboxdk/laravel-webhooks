@@ -5,7 +5,6 @@ declare(strict_types=1);
 use Carbon\CarbonImmutable;
 use Cbox\Webhooks\Contracts\Deliverer;
 use Cbox\Webhooks\Contracts\Publisher;
-use Cbox\Webhooks\Delivery\HttpTransport;
 use Cbox\Webhooks\Enums\DeliveryStatus;
 use Cbox\Webhooks\Facades\Webhooks;
 use Cbox\Webhooks\Jobs\DeliverWebhook;
@@ -153,7 +152,16 @@ it('respects the sweep limit and orders by next attempt time', function (): void
 it('runs the job through the deliverer with the attempt it was pushed with', function (): void {
     $delivery = pendingDelivery($this->scope);
 
-    (new DeliverWebhook($delivery->id, 0, 900))->handle(app(Deliverer::class), app(HttpTransport::class));
+    (new DeliverWebhook($delivery->id, 0, 900))->handle(app(Deliverer::class));
 
     expect($delivery->refresh()->status)->toBe(DeliveryStatus::Delivered);
+});
+
+it('fixes the job timeout at dispatch from the transport budget', function (): void {
+    config(['webhooks.http.connect_timeout' => 3, 'webhooks.http.timeout' => 7]);
+    Bus::fake([DeliverWebhook::class]);
+
+    app(Publisher::class)->publish(new OutboundEvent('user.created', $this->scope, ['id' => 1]));
+
+    Bus::assertDispatched(DeliverWebhook::class, fn (DeliverWebhook $job): bool => $job->timeout === 25 && $job->uniqueFor === 900);
 });
