@@ -5,6 +5,8 @@ All notable changes to this package are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-30
+
 ### Added
 
 - The outbox: `Contracts\Publisher` with `DatabasePublisher`, idempotency keys per
@@ -23,3 +25,6 @@ All notable changes to this package are documented here. The format follows
 - The management API (`Http\Routes`), eight console commands, seventeen Laravel
   events, `Contracts\Monitor`, the telemetry adapters, `Testing\InteractsWithWebhooks`
   and `Testing\FakeWebhooks`.
+
+[Unreleased]: https://github.com/cboxdk/laravel-webhooks/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/cboxdk/laravel-webhooks/releases/tag/v0.1.0
