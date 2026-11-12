@@ -13,6 +13,7 @@ use Cbox\Webhooks\Enums\DeliveryStatus;
 use Cbox\Webhooks\Exceptions\InvalidCursor;
 use Cbox\Webhooks\Facades\Webhooks;
 use Cbox\Webhooks\Http\Routes;
+use Cbox\Webhooks\Models\WebhookAttempt;
 use Cbox\Webhooks\Support\Keyset;
 use Cbox\Webhooks\Tests\Fixtures\RequestScopeResolver;
 use Cbox\Webhooks\ValueObjects\AttemptFilter;
@@ -199,6 +200,13 @@ it('pages through a scope\'s attempts, filtered by endpoint, delivery, outcome a
     Http::fake(['receiver.test/shop' => Http::sequence()->push('', 500)->push('', 500)->whenEmpty(Http::response('', 200))]);
     publishSpread($this->shop, 7);
     publishSpread($this->desk, 2);
+
+    // An attempt starts "now minus how long the request took", so the fake's few
+    // real milliseconds can put it in the previous second. Pin the times the
+    // range filters are asserted on: three attempts to a second, like the events.
+    foreach (WebhookAttempt::query()->where('scope_key', 'shop')->orderBy('id')->pluck('id') as $i => $id) {
+        WebhookAttempt::query()->whereKey($id)->update(['started_at' => CarbonImmutable::parse('2026-10-30 12:00:00')->addSeconds(intdiv($i, 3))]);
+    }
 
     $attempts = Webhooks::attempts();
 
