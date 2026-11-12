@@ -26,6 +26,7 @@ $this->app->bind(Deliverer::class, fn ($app) => new LoggingDeliverer($app->make(
 | `EventCatalogs` | `EventCatalog` | `for(Scope)`; the shared catalog for every scope by default. See [A catalog per scope](event-catalogs.md) |
 | `Monitor` | `Overview`, `EndpointStats`, `bool` | |
 | `Sweeper`, `Pruner` | `SweepReport`, `PruneReport` | |
+| `RetentionPolicies` | `Retention` | `for(Scope)`; `webhooks.retention` for every scope by default. See [Retention per scope](retention.md) |
 | `Erasure` | `int` | |
 | `Receivers` | handlers | `on`, `handlersFor`, `hasHandlersFor` |
 | `ScopeResolver` | `Scope` | not bound by default |

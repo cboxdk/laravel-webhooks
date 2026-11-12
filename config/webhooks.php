@@ -229,7 +229,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | "events_days" is the replay horizon: an event older than that cannot be
-    | replayed because it is gone.
+    | replayed because it is gone. These are the defaults for every scope; bind
+    | Contracts\RetentionPolicies to answer per scope ("inbound_days" has no
+    | scope and always applies).
     |
     */
 

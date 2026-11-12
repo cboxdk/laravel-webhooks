@@ -19,6 +19,8 @@ What is built, what is tested, what is not. Kept honest; update it with the code
 - Cursor pagination of deliveries, attempts and events: no skips or repeats with tied
   timestamps, rows arriving mid-walk, every filter, a cursor used in another scope,
   invalid cursors, event lookup by id, the four API routes.
+- Retention per scope: the config default, a shorter and a longer window per scope,
+  field-by-field fallback, scopes with only events left, the floor of one day.
 - Delivery: claim race, retry schedule and exhaustion, jitter, 4xx/5xx/timeout/
   connection classification, 410, 429 with `Retry-After` (seconds, HTTP date, cap),
   blocked-URL policy retries, circuit breaker (trip, wait without attempt, single probe,
@@ -42,7 +44,7 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   connection), and a repeated idempotency key inside a host transaction leaves that
   transaction usable.
 
-151 tests, 1081 assertions, including the architecture test, on SQLite in memory and on
+155 tests, 1100 assertions, including the architecture test, on SQLite in memory and on
 PostgreSQL 18 (one test needs a second connection and is skipped on SQLite). PHPStan
 level max with no ignores; Pint.
 

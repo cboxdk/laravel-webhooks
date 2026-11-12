@@ -11,6 +11,7 @@ use Cbox\Webhooks\Contracts\EventCatalog;
 use Cbox\Webhooks\Contracts\EventCatalogs;
 use Cbox\Webhooks\Contracts\Publisher;
 use Cbox\Webhooks\Contracts\Receivers;
+use Cbox\Webhooks\Contracts\RetentionPolicies;
 use Cbox\Webhooks\Contracts\Sweeper;
 use Cbox\Webhooks\Delivery\Envelope;
 use Cbox\Webhooks\Events\WebhookProcessed;
@@ -129,6 +130,16 @@ trait InteractsWithWebhooks
         $fake = new FakeEventCatalogs;
 
         Container::getInstance()->instance(EventCatalogs::class, $fake);
+
+        return $fake;
+    }
+
+    /** Retention per scope for this test; a scope nothing is set for keeps the configured default. */
+    protected function fakeRetentionPolicies(): FakeRetentionPolicies
+    {
+        $fake = new FakeRetentionPolicies;
+
+        Container::getInstance()->instance(RetentionPolicies::class, $fake);
 
         return $fake;
     }

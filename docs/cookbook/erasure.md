@@ -20,7 +20,8 @@ part of an owner's erasure; prune them by retention or delete by hand.
 
 ## Retention
 
-`webhooks:prune` (daily) removes, per `webhooks.retention`:
+`webhooks:prune` (daily) removes, per `webhooks.retention` (or per scope, when the host
+binds [`RetentionPolicies`](../extension-points/retention.md)):
 
 | Rows | After |
 | --- | --- |

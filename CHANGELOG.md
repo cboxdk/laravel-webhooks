@@ -23,6 +23,14 @@ All notable changes to this package are documented here. The format follows
 
 ### Added
 
+- Retention per scope: `Contracts\RetentionPolicies` with
+  `for(Scope $scope): Retention`, and `ValueObjects\Retention(?int $deliveredDays,
+  ?int $failedDays, ?int $eventsDays)` whose null fields fall back to
+  `webhooks.retention`. The default binding, `Housekeeping\ConfigRetentionPolicies`,
+  answers the config for every scope and the pruner then works on whole tables as in
+  0.1; with a host binding it prunes scope by scope. `Testing\FakeRetentionPolicies`
+  and `fakeRetentionPolicies()` come with it.
+
 - Cursor pagination, newest first, for deliveries, attempts and events:
   `Deliveries::paginate(Scope, DeliveryFilter, ?string $cursor = null): Page`, and two
   new contracts, `Contracts\AttemptLog::paginate(Scope, AttemptFilter, ?string $cursor)`

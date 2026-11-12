@@ -29,6 +29,7 @@ use Cbox\Webhooks\Contracts\Monitor;
 use Cbox\Webhooks\Contracts\Pruner;
 use Cbox\Webhooks\Contracts\Publisher;
 use Cbox\Webhooks\Contracts\Receivers;
+use Cbox\Webhooks\Contracts\RetentionPolicies;
 use Cbox\Webhooks\Contracts\Sweeper;
 use Cbox\Webhooks\Contracts\Tracing;
 use Cbox\Webhooks\Delivery\DatabaseAttemptLog;
@@ -36,6 +37,7 @@ use Cbox\Webhooks\Delivery\DatabaseBatchFlusher;
 use Cbox\Webhooks\Delivery\DatabaseDeliveries;
 use Cbox\Webhooks\Delivery\HttpDeliverer;
 use Cbox\Webhooks\Endpoints\DatabaseEndpoints;
+use Cbox\Webhooks\Housekeeping\ConfigRetentionPolicies;
 use Cbox\Webhooks\Housekeeping\DatabaseErasure;
 use Cbox\Webhooks\Housekeeping\DatabasePruner;
 use Cbox\Webhooks\Housekeeping\DatabaseSweeper;
@@ -84,6 +86,7 @@ class WebhooksServiceProvider extends ServiceProvider
         $this->app->bind(Monitor::class, DatabaseMonitor::class);
         $this->app->bind(Sweeper::class, DatabaseSweeper::class);
         $this->app->bind(Pruner::class, DatabasePruner::class);
+        $this->app->bind(RetentionPolicies::class, ConfigRetentionPolicies::class);
         $this->app->bind(Erasure::class, DatabaseErasure::class);
 
         $this->app->singleton(Metrics::class, function (Application $app): Metrics {

@@ -71,6 +71,9 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 | `retention.events_days` | `30` | events; the replay horizon |
 | `retention.inbound_days` | `30` | the inbound ledger |
 
+The three scoped windows are the defaults; bind
+[`RetentionPolicies`](../extension-points/retention.md) to answer per scope.
+
 ## Receiving
 
 | Key | Default | Changes |
