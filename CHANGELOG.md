@@ -36,7 +36,6 @@ All notable changes to this package are documented here. The format follows
 - `webhooks.telemetry.scope_attributes`: put `webhook.scope.partition` and
   `webhook.scope.key` on the publish and deliver spans. Off by default, and never a
   metric tag.
-
 - The envelope is a strategy chosen per endpoint. `Contracts\EnvelopeFormat`
   (`single(EnvelopeItem): EncodedEnvelope`, `batch(string, list<EnvelopeItem>):
   EncodedEnvelope`) returns the final body and its content type; the deliverer signs
@@ -47,7 +46,6 @@ All notable changes to this package are documented here. The format follows
   as its `source`. A new additive migration adds `webhook_endpoints.envelope` (default
   `cbox`); `NewEndpoint`, `EndpointChanges` and `Endpoint` gain `envelope`, and the
   management API accepts it.
-
 - Retention per scope: `Contracts\RetentionPolicies` with
   `for(Scope $scope): Retention`, and `ValueObjects\Retention(?int $deliveredDays,
   ?int $failedDays, ?int $eventsDays)` whose null fields fall back to
@@ -55,7 +53,6 @@ All notable changes to this package are documented here. The format follows
   answers the config for every scope and the pruner then works on whole tables as in
   0.1; with a host binding it prunes scope by scope. `Testing\FakeRetentionPolicies`
   and `fakeRetentionPolicies()` come with it.
-
 - Cursor pagination, newest first, for deliveries, attempts and events:
   `Deliveries::paginate(Scope, DeliveryFilter, ?string $cursor = null): Page`, and two
   new contracts, `Contracts\AttemptLog::paginate(Scope, AttemptFilter, ?string $cursor)`
@@ -66,19 +63,16 @@ All notable changes to this package are documented here. The format follows
   `Webhooks::events()` reach them. The management API gains `GET /deliveries`,
   `GET /attempts`, `GET /events` and `GET /events/{id}`. A cursor the package did not
   issue throws `Exceptions\InvalidCursor` (422 from the API).
-
 - `webhook_attempts` carries its delivery's scope: a new additive migration adds
   nullable `partition` and `scope_key`, fills them from each attempt's delivery and
   indexes `(partition, scope_key, started_at)`. New attempts are written with them,
   `ValueObjects\Attempt` has a `scope`, `WebhookAttempt::scope()` exists, and
   `Erasure::forget()` deletes a scope's attempts directly. `php artisan migrate` to
   apply; see `docs/getting-started/upgrading.md`.
-
 - `webhooks.sweep_fairness`: `none` (default, oldest first across every scope, as in
   0.1), `scope` or `partition`. With one of the latter the sweep spends its per-tick
   limit round-robin over the owners that have rows due, so one owner's backlog cannot
   delay everyone else's retries. `Enums\SweepFairness` names the values.
-
 - `Contracts\EventCatalogs` with `for(Scope $scope): EventCatalog`: the catalog in force
   for a scope. The default, `Catalog\SharedEventCatalogs`, answers the shared
   `EventCatalog` for every scope, which is the 0.1 behaviour. A multi-tenant host binds
@@ -86,7 +80,6 @@ All notable changes to this package are documented here. The format follows
   replay, the management API and `webhooks:catalog --scope=` all ask it, so a type
   unknown in a scope is still refused there. `Webhooks::catalog(?Scope $scope = null)`,
   `Testing\FakeEventCatalogs` and `fakeEventCatalogs()` come with it.
-
 - CI runs the whole suite on PostgreSQL 18 beside SQLite. Nothing in the engine had to
   change for it; two tests were added for what only a server shows: a second publisher
   waits on the endpoint row lock, and a duplicate idempotency key does not poison the
@@ -101,7 +94,6 @@ All notable changes to this package are documented here. The format follows
 - `WebhookEndpoint` casts `secret` and `previous_secret` through
   `Models\Casts\EncryptedSecret` instead of the built-in `encrypted` cast. The stored
   format is the same with the default encrypter.
-
 - The shipped implementations (`DatabasePublisher`, `DatabaseEndpoints`,
   `EndpointPolicy`, the catalog controller and form requests) take `EventCatalogs`
   where they took `EventCatalog`, and `EndpointPolicy::assertEventTypes()` takes the
@@ -112,7 +104,6 @@ All notable changes to this package are documented here. The format follows
 
 - The README said "Proprietary". The package is MIT, as `composer.json` and
   `LICENSE.md` say.
-
 - An `OutboundEvent::$occurredAt` in a timezone other than the application's was stored
   as its wall-clock time, shifting the instant by the offset. It is converted before it
   is stored.
