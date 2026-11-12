@@ -31,6 +31,7 @@ $this->app->bind(Deliverer::class, fn ($app) => new LoggingDeliverer($app->make(
 | `Sweeper`, `Pruner` | `SweepReport`, `PruneReport` | |
 | `RetentionPolicies` | `Retention` | `for(Scope)`; `webhooks.retention` for every scope by default. See [Retention per scope](retention.md) |
 | `Erasure` | `int` | |
+| `SubjectErasure` | `int` | One person's events in a scope |
 | `Receivers` | handlers | `on`, `handlersFor`, `hasHandlersFor` |
 | `ScopeResolver` | `Scope` | not bound by default |
 | `Metrics`, `Tracing` | void / mixed | no-ops by default |

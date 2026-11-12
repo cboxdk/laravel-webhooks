@@ -5,6 +5,18 @@ All notable changes to this package are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-12
+
+### Added
+
+- `OutboundEvent` takes an optional `subject`: the host's own id for the person the
+  event is about. It is stored on the event (a new nullable column with an index;
+  `php artisan migrate`), never sent to the receiver.
+- `Contracts\SubjectErasure` with `forgetSubject(Scope $scope, string $subject): int`
+  removes that person's events in the scope with their deliveries and attempts, and
+  nothing else. Events published without a subject are only removed by
+  `Erasure::forget()` or by retention.
+
 ## [0.2.0] - 2026-11-12
 
 ### Breaking

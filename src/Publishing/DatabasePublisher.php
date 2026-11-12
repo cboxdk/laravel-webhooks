@@ -129,6 +129,7 @@ final readonly class DatabasePublisher implements Publisher
             'scope_key' => $event->scope->key,
             'type' => $event->type,
             'idempotency_key' => $event->idempotencyKey,
+            'subject' => $event->subject,
             'dedup_hash' => $this->dedupHash($event->scope, $event->idempotencyKey),
             'payload' => $event->payload,
             // In the application's timezone: the column holds a wall-clock time, so an

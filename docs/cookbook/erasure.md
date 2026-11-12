@@ -18,6 +18,25 @@ configuration, not data about a person; delete them through `Endpoints::delete()
 the customer leaves. Inbound ledger rows are keyed by the sender's scope and are not
 part of an owner's erasure; prune them by retention or delete by hand.
 
+## One person inside a scope
+
+Name the person when you publish, with your own id for them (not an address):
+
+```php
+$publisher->publish(new OutboundEvent('order.paid', $scope, $payload, subject: 'contact_42'));
+```
+
+and forget them later:
+
+```php
+app(\Cbox\Webhooks\Contracts\SubjectErasure::class)->forgetSubject($scope, 'contact_42');   // rows removed
+```
+
+That removes their events in that scope with the deliveries and attempts of those
+events. The subject is stored with the event and never sent to a receiver. An event
+published without a subject is not found: it goes with the scope's erasure or with
+retention.
+
 ## Retention
 
 `webhooks:prune` (daily) removes, per `webhooks.retention` (or per scope, when the host
