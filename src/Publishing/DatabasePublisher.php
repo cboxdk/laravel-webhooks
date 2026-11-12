@@ -21,6 +21,7 @@ use Cbox\Webhooks\Exceptions\PayloadTooLarge;
 use Cbox\Webhooks\Exceptions\UnknownEventType;
 use Cbox\Webhooks\Models\WebhookEndpoint;
 use Cbox\Webhooks\Models\WebhookEvent;
+use Cbox\Webhooks\Monitoring\ScopeAttributes;
 use Cbox\Webhooks\Monitoring\SpanContext;
 use Cbox\Webhooks\Support\Config;
 use Cbox\Webhooks\Support\Json;
@@ -61,6 +62,7 @@ final readonly class DatabasePublisher implements Publisher
         private Metrics $metrics,
         private Tracing $tracing,
         private LoggerInterface $log,
+        private ScopeAttributes $scopeAttributes,
     ) {}
 
     public function publish(OutboundEvent $event): PublishedEvent
@@ -89,7 +91,7 @@ final readonly class DatabasePublisher implements Publisher
 
     private function record(OutboundEvent $event): PublishedEvent
     {
-        return $this->tracing->span('webhooks.publish', SpanKind::Internal, ['webhook.type' => $event->type], function (SpanContext $span) use ($event): PublishedEvent {
+        return $this->tracing->span('webhooks.publish', SpanKind::Internal, ['webhook.type' => $event->type, ...$this->scopeAttributes->for($event->scope)], function (SpanContext $span) use ($event): PublishedEvent {
             $stored = $this->store($event);
 
             if ($stored === null) {

@@ -25,6 +25,11 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   single and batch with the signature verified over the recorded body, an empty payload
   as an object, a host-registered format, an unknown name refused on register, update
   and in the API, a retired name failing loudly without losing the delivery.
+- Host seams: the user agent and fixed headers from config and per endpoint (a profile
+  cannot spoof a signature or transport header), secrets through a host encrypter
+  including rotation and reading 0.1 rows, every table and migration on a configured
+  connection with nothing on the default one, the scope on spans only when asked and
+  never on a metric.
 - Delivery: claim race, retry schedule and exhaustion, jitter, 4xx/5xx/timeout/
   connection classification, 410, 429 with `Retry-After` (seconds, HTTP date, cap),
   blocked-URL policy retries, circuit breaker (trip, wait without attempt, single probe,
@@ -48,7 +53,7 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   connection), and a repeated idempotency key inside a host transaction leaves that
   transaction usable.
 
-163 tests, 1151 assertions, including the architecture test, on SQLite in memory and on
+169 tests, 1205 assertions, including the architecture test, on SQLite in memory and on
 PostgreSQL 18 (one test needs a second connection and is skipped on SQLite). PHPStan
 level max with no ignores; Pint.
 

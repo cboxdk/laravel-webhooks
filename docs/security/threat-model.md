@@ -38,10 +38,12 @@ and the unscoped monitor are the only cross-scope readers.
 
 ## Secrets
 
-Stored with Laravel's `encrypted` cast (your `APP_KEY`). Returned once on registration
+Encrypted at rest through `Contracts\SecretEncrypter`: Laravel's encrypter and your
+`APP_KEY` by default, or [a key of your choice](../extension-points/secret-encrypter.md). Returned once on registration
 and rotation; never by `GET`, never in `Endpoint::toArray()`, never in an event or a log
 line. The previous secret is kept only for the overlap and cleared by the sweep.
-Rotating `APP_KEY` requires re-encrypting the columns, as for any encrypted cast.
+Rotating the key requires re-encrypting the columns, or an encrypter that still reads
+the previous key.
 
 ## Payloads
 
@@ -61,4 +63,5 @@ webhooks from starving the rest of the app. Payload size is capped at publish.
 - Authenticate the management API. Put your own middleware on the routes.
 - mTLS, OAuth or IP allow-listing towards receivers.
 - Guarantee exactly-once delivery.
-- Protect secrets from a compromised `APP_KEY` or database host with read access to both.
+- Protect secrets from someone who holds both the database and the encryption key
+  (`APP_KEY`, or the key your `SecretEncrypter` uses).

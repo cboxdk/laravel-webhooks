@@ -20,8 +20,22 @@ that off and publish:
 php artisan vendor:publish --tag=webhooks-migrations
 ```
 
-Migrations are additive. A shipped migration is never edited after release; schema
-changes arrive as new files.
+Migrations are additive. A shipped migration's schema is never edited after release;
+schema changes arrive as new files.
+
+### A database of its own
+
+Set `webhooks.connection` to the name of a connection in `config/database.php` and the
+five tables live there: the models use it, and the package's migrations run on it
+whichever connection `migrate` was started for. The transactions the engine opens
+(publish, replay, ping) are on that connection, so a publish no longer joins a
+transaction your application opened on its default connection: publish after your own
+commit, or keep both on one connection if you rely on the outbox joining your
+transaction.
+
+If you published the migrations under 0.1, publish them again
+(`vendor:publish --tag=webhooks-migrations --force`) before setting a connection: the
+0.1 copy does not know the key.
 
 ## Configuration
 

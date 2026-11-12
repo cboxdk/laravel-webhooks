@@ -87,7 +87,7 @@ new NewEndpoint('https://customer.example/hooks', ['invoice.*'], envelope: 'clou
 | Header | Value |
 | --- | --- |
 | `Content-Type` | `application/json`, or what the envelope format declares |
-| `User-Agent` | `Cbox-Webhooks/1.0 (+https://github.com/cboxdk/laravel-webhooks)` unless `webhooks.http.user_agent` is set |
+| `User-Agent` | `Cbox-Webhooks/1.0 (+https://github.com/cboxdk/laravel-webhooks)` unless `webhooks.http.user_agent` or a [request profile](../extension-points/request-profiles.md) says otherwise |
 | `X-Webhook-Event` | the type, or `batch` |
 | `X-Webhook-Delivery` | the delivery id, or the batch id |
 | `X-Webhook-Sequence` | the sequence, or `first-last` |
@@ -97,6 +97,7 @@ new NewEndpoint('https://customer.example/hooks', ['invoice.*'], envelope: 'clou
 | `traceparent` | with telemetry: the delivery span's context |
 | signature headers | per scheme, see [Signing](../security/signing.md) |
 | static headers | the endpoint's own, e.g. `Authorization` |
+| fixed headers | the host's: `webhooks.http.headers`, or a [request profile](../extension-points/request-profiles.md) |
 
 Reserved headers cannot be set as static headers: `Host`, `Content-Length`,
 `Content-Type`, `Transfer-Encoding`, `Connection`, `User-Agent`, `Idempotency-Key`,

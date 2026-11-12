@@ -136,6 +136,17 @@ return new class extends Migration
         }
     }
 
+    /**
+     * The connection the package's tables live on (`webhooks.connection`); null
+     * is the application's default.
+     */
+    public function getConnection(): ?string
+    {
+        $connection = config('webhooks.connection');
+
+        return is_string($connection) && $connection !== '' ? $connection : null;
+    }
+
     private function prefix(): string
     {
         $prefix = config('webhooks.table_prefix', 'webhook_');

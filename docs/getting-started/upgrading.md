@@ -44,6 +44,9 @@ to `^0.2` (or `^0.1 || ^0.2` while you roll out).
 The backfill is one `UPDATE` per column over the attempts table. On a table with many
 millions of rows, run the migration off-peak, or prune first (`webhooks:prune`).
 
+The 0.1 migration file gained a `getConnection()` method so it follows
+`webhooks.connection`. Its schema is unchanged and it does not run again.
+
 During a rolling deploy a worker still on 0.1 writes attempts without the scope
 columns. They are still erased with their delivery; to make them listable by scope, run
 the migration's two `UPDATE` statements once more after the last old worker is gone.

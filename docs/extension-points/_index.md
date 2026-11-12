@@ -14,3 +14,5 @@ weight: 50
 - [A catalog per scope](event-catalogs.md) — each customer of a multi-tenant host with its own event types
 - [Retention per scope](retention.md) — how long each owner's history is kept
 - [Envelope formats](envelope-formats.md) — your own wire format, chosen per endpoint
+- [User agent and fixed headers](request-profiles.md) — per endpoint or scope
+- [Secret encryption key](secret-encrypter.md) — keep signing secrets under a key other than `APP_KEY`

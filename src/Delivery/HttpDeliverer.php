@@ -7,7 +7,9 @@ namespace Cbox\Webhooks\Delivery;
 use Carbon\CarbonImmutable;
 use Cbox\Webhooks\Contracts\Deliverer;
 use Cbox\Webhooks\Contracts\EnvelopeFormats;
+use Cbox\Webhooks\Contracts\RequestProfiles;
 use Cbox\Webhooks\Contracts\Tracing;
+use Cbox\Webhooks\Endpoints\EndpointMapper;
 use Cbox\Webhooks\Enums\AttemptOutcome;
 use Cbox\Webhooks\Enums\DeliveryStatus;
 use Cbox\Webhooks\Enums\EndpointStatus;
@@ -15,6 +17,7 @@ use Cbox\Webhooks\Enums\SpanKind;
 use Cbox\Webhooks\Models\WebhookDelivery;
 use Cbox\Webhooks\Models\WebhookEndpoint;
 use Cbox\Webhooks\Models\WebhookEvent;
+use Cbox\Webhooks\Monitoring\ScopeAttributes;
 use Cbox\Webhooks\Monitoring\SpanContext;
 use Cbox\Webhooks\Support\Json;
 use Cbox\Webhooks\Support\Models;
@@ -55,6 +58,9 @@ final readonly class HttpDeliverer implements Deliverer
         private Tracing $tracing,
         private Clock $clock,
         private EnvelopeFormats $envelopes,
+        private RequestProfiles $profiles,
+        private EndpointMapper $mapper,
+        private ScopeAttributes $scopeAttributes,
     ) {}
 
     public function deliver(string $deliveryId, int $expectedAttempt): ?AttemptResult
@@ -207,8 +213,12 @@ final readonly class HttpDeliverer implements Deliverer
     {
         $body = $envelope->body;
         $timestamp = $this->clock->now();
+        $profile = $this->profiles->for($this->mapper->endpoint($endpoint));
 
+        // Later entries win: the host's fixed headers, then the endpoint's own,
+        // then everything the signature and the transport depend on.
         $headers = [
+            ...$profile->headers,
             ...Json::stringMap($endpoint->headers),
             ...$this->signer->headers($endpoint->signature_scheme, $endpoint->secret, $body, $messageId, $timestamp),
             'X-Webhook-Event' => $type,
@@ -225,10 +235,11 @@ final readonly class HttpDeliverer implements Deliverer
             'webhook.delivery_id' => $messageId,
             'webhook.attempt' => $attempt,
             'server.address' => (string) parse_url($endpoint->url, PHP_URL_HOST),
+            ...$this->scopeAttributes->for($endpoint->scope()),
         ];
 
-        return $this->tracing->span('webhooks.deliver', SpanKind::Client, $attributes, function (SpanContext $span) use ($endpoint, $envelope, $headers): TransportResult {
-            $result = $this->transport->send($endpoint->url, $envelope->body, $headers, $envelope->contentType);
+        return $this->tracing->span('webhooks.deliver', SpanKind::Client, $attributes, function (SpanContext $span) use ($endpoint, $envelope, $headers, $profile): TransportResult {
+            $result = $this->transport->send($endpoint->url, $envelope->body, $headers, $envelope->contentType, $profile->userAgent);
 
             $span->set('webhook.outcome', $result->outcome->value);
 

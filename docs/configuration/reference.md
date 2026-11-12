@@ -12,6 +12,7 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 
 | Key | Default | Changes |
 | --- | --- | --- |
+| `connection` | `null` | the database connection the tables live on, migrations included; null is the default connection |
 | `table_prefix` | `webhook_` | every table name |
 | `run_migrations` | `true` | off: publish and run them yourself |
 | `models.endpoint`, `.event`, `.delivery`, `.attempt`, `.inbound` | the shipped classes | subclasses; must extend the shipped model |
@@ -38,6 +39,7 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 | `http.connect_timeout` | `5` | seconds |
 | `http.timeout` | `10` | seconds |
 | `http.user_agent` | `null` | replaces `Cbox-Webhooks/1.0 (+…)` |
+| `http.headers` | `[]` | sent on every request; an endpoint's own headers win. Per endpoint: [`RequestProfiles`](../extension-points/request-profiles.md) |
 
 ## Envelopes
 
@@ -94,3 +96,4 @@ The three scoped windows are the defaults; bind
 | --- | --- | --- |
 | `metrics` | `null` | a class implementing `Contracts\Metrics`; wins over telemetry |
 | `telemetry.enabled` | `true` | use the adapters when `cboxdk/laravel-telemetry` is installed |
+| `telemetry.scope_attributes` | `false` | add `webhook.scope.partition` and `webhook.scope.key` to the publish and deliver spans; never to a metric |

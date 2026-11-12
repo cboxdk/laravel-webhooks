@@ -32,6 +32,14 @@ subscribes `Telemetry\TelemetryHooks`. Nothing to configure.
 span's context goes out as `traceparent`, and a receiver running this package continues
 it in a `webhooks.receive` server span, so one trace crosses both apps.
 
+### The scope on spans
+
+`webhooks.telemetry.scope_attributes = true` adds `webhook.scope.partition` and
+`webhook.scope.key` to the `webhooks.publish` and `webhooks.deliver` spans, so a trace
+can be found by tenant. It is off by default, because a scope may be an identifier you
+do not want in a tracing backend. It is spans only: the scope is never a metric tag,
+where every tenant would be a new time series.
+
 ## Another backend
 
 Name a class implementing `Cbox\Webhooks\Contracts\Metrics` in `webhooks.metrics`.

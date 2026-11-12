@@ -33,8 +33,9 @@ final readonly class HttpTransport
     /**
      * @param  array<string, string>  $headers
      * @param  string  $contentType  what the body is, as the envelope format declared it
+     * @param  string|null  $userAgent  for this request; null uses the configured one, or the package's own
      */
-    public function send(string $url, string $body, array $headers, string $contentType = 'application/json'): TransportResult
+    public function send(string $url, string $body, array $headers, string $contentType = 'application/json', ?string $userAgent = null): TransportResult
     {
         $started = hrtime(true);
 
@@ -47,7 +48,7 @@ final readonly class HttpTransport
         try {
             $response = $this->http
                 ->withHeaders($headers)
-                ->withUserAgent($this->config->string('http.user_agent') ?? self::USER_AGENT)
+                ->withUserAgent($userAgent ?? $this->config->string('http.user_agent') ?? self::USER_AGENT)
                 ->withOptions($pinned)
                 ->withoutRedirecting()
                 ->connectTimeout($this->config->positiveInt('http.connect_timeout', 5))

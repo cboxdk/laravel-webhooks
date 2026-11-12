@@ -19,7 +19,12 @@ return [
     | (`vendor:publish --tag=webhooks-migrations`) and run them yourself.
     | Migrations are additive: a shipped one is never edited.
     |
+    | "connection" names the database connection the tables live on; null is
+    | the application's default. The package's migrations run on it too.
+    |
     */
+
+    'connection' => null,
 
     'table_prefix' => 'webhook_',
 
@@ -109,7 +114,15 @@ return [
     'http' => [
         'connect_timeout' => 5,
         'timeout' => 10,
+
+        // Null sends "Cbox-Webhooks/1.0 (+https://github.com/cboxdk/laravel-webhooks)".
         'user_agent' => null,
+
+        // Sent on every request, e.g. ['X-Sender' => 'acme']. An endpoint's own
+        // static headers win on a clash, and neither can replace a signature
+        // or transport header. Bind Contracts\RequestProfiles to choose the
+        // user agent and these headers per endpoint or per scope.
+        'headers' => [],
     ],
 
     /*
@@ -290,6 +303,12 @@ return [
 
     'telemetry' => [
         'enabled' => true,
+
+        // Put the scope on the publish and deliver spans as
+        // webhook.scope.partition / webhook.scope.key. Spans only, never a
+        // metric tag. Off by default: a scope may be an identifier you do not
+        // want in a tracing backend.
+        'scope_attributes' => false,
     ],
 
 ];

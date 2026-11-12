@@ -23,6 +23,20 @@ All notable changes to this package are documented here. The format follows
 
 ### Added
 
+- `Contracts\RequestProfiles` with `for(Endpoint $endpoint): RequestProfile`: the user
+  agent and fixed headers per endpoint (so per scope, or per anything in its metadata).
+  The default reads `webhooks.http.user_agent` and the new `webhooks.http.headers`. A
+  profile header can never replace a signature or transport header.
+- `Contracts\SecretEncrypter` (`encrypt`, `decrypt`): the key endpoint secrets are
+  stored under. The default, `Endpoints\ApplicationSecretEncrypter`, is Laravel's
+  encrypter and `APP_KEY` in the format the `encrypted` cast wrote, so 0.1 rows read
+  unchanged.
+- `webhooks.connection`: the database connection the tables live on. The models and
+  every migration follow it.
+- `webhooks.telemetry.scope_attributes`: put `webhook.scope.partition` and
+  `webhook.scope.key` on the publish and deliver spans. Off by default, and never a
+  metric tag.
+
 - The envelope is a strategy chosen per endpoint. `Contracts\EnvelopeFormat`
   (`single(EnvelopeItem): EncodedEnvelope`, `batch(string, list<EnvelopeItem>):
   EncodedEnvelope`) returns the final body and its content type; the deliverer signs
@@ -80,6 +94,14 @@ All notable changes to this package are documented here. The format follows
 
 ### Changed
 
+- `database/migrations/2026_10_30_000000_create_webhook_tables.php` gained a
+  `getConnection()` method so it follows `webhooks.connection`. Its schema is
+  untouched and it does not run again on a host that already ran it. A host that
+  published the 0.1 migrations and wants a separate connection publishes them again.
+- `WebhookEndpoint` casts `secret` and `previous_secret` through
+  `Models\Casts\EncryptedSecret` instead of the built-in `encrypted` cast. The stored
+  format is the same with the default encrypter.
+
 - The shipped implementations (`DatabasePublisher`, `DatabaseEndpoints`,
   `EndpointPolicy`, the catalog controller and form requests) take `EventCatalogs`
   where they took `EventCatalog`, and `EndpointPolicy::assertEventTypes()` takes the
@@ -87,6 +109,9 @@ All notable changes to this package are documented here. The format follows
   that does not construct them by hand.
 
 ### Fixed
+
+- The README said "Proprietary". The package is MIT, as `composer.json` and
+  `LICENSE.md` say.
 
 - An `OutboundEvent::$occurredAt` in a timezone other than the application's was stored
   as its wall-clock time, shifting the instant by the offset. It is converted before it
