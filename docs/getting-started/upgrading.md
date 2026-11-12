@@ -25,6 +25,10 @@ to `^0.2` (or `^0.1 || ^0.2` while you roll out).
   partition and publish with one, publish without it, or move the endpoints
   (`UPDATE webhook_endpoints SET partition = ? WHERE scope_key = ? AND partition IS NULL`).
 
+- **`Contracts\Deliveries` has a new method, `paginate()`.** Calling code is not
+  affected. If you implement or decorate `Deliveries` yourself, add it (a decorator
+  forwards it to the inner instance).
+
 ### Migrations
 
 | Migration | Adds |

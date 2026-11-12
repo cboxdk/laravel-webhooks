@@ -58,6 +58,8 @@ arch('final by default')
         'Cbox\Webhooks\ValueObjects\AttemptResult',
         'Cbox\Webhooks\ValueObjects\Overview',
         'Cbox\Webhooks\ValueObjects\IncomingWebhook',
+        'Cbox\Webhooks\ValueObjects\Page',
+        'Cbox\Webhooks\ValueObjects\RecordedEvent',
     ]);
 
 arch('value objects are readonly')

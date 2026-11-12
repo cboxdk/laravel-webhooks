@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Cbox\Webhooks;
 
+use Cbox\Webhooks\Contracts\AttemptLog;
 use Cbox\Webhooks\Contracts\Deliveries;
 use Cbox\Webhooks\Contracts\Endpoints;
 use Cbox\Webhooks\Contracts\EventCatalog;
 use Cbox\Webhooks\Contracts\EventCatalogs;
+use Cbox\Webhooks\Contracts\EventLog;
 use Cbox\Webhooks\Contracts\Monitor;
 use Cbox\Webhooks\Contracts\Publisher;
 use Cbox\Webhooks\Contracts\Receivers;
@@ -47,6 +49,18 @@ final readonly class WebhooksManager
     public function deliveries(): Deliveries
     {
         return $this->container->make(Deliveries::class);
+    }
+
+    /** The HTTP attempts of a scope, paginated. */
+    public function attempts(): AttemptLog
+    {
+        return $this->container->make(AttemptLog::class);
+    }
+
+    /** The events the outbox recorded for a scope: lookup by id, paginated listing. */
+    public function events(): EventLog
+    {
+        return $this->container->make(EventLog::class);
     }
 
     /**

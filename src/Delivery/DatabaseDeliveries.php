@@ -9,10 +9,12 @@ use Cbox\Webhooks\Contracts\Deliveries;
 use Cbox\Webhooks\Enums\DeliveryStatus;
 use Cbox\Webhooks\Models\WebhookAttempt;
 use Cbox\Webhooks\Models\WebhookDelivery;
+use Cbox\Webhooks\Support\Keyset;
 use Cbox\Webhooks\Support\Models;
 use Cbox\Webhooks\Support\ScopedQuery;
 use Cbox\Webhooks\ValueObjects\Delivery;
 use Cbox\Webhooks\ValueObjects\DeliveryFilter;
+use Cbox\Webhooks\ValueObjects\Page;
 use Cbox\Webhooks\ValueObjects\Scope;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -46,10 +48,40 @@ final readonly class DatabaseDeliveries implements Deliveries
 
     public function list(Scope $scope, DeliveryFilter $filter): array
     {
+        return array_values($this->filtered($scope, $filter)
+            ->orderByDesc('created_at')
+            ->orderByDesc('sequence')
+            ->limit(max(1, min(1000, $filter->limit)))
+            ->get()
+            ->map(static fn (WebhookDelivery $d) => DeliveryMapper::delivery($d))
+            ->all());
+    }
+
+    public function paginate(Scope $scope, DeliveryFilter $filter, ?string $cursor = null): Page
+    {
+        return Keyset::page(
+            $this->filtered($scope, $filter),
+            'created_at',
+            $filter->limit,
+            $cursor,
+            static fn (WebhookDelivery $d): ?CarbonImmutable => $d->created_at,
+            static fn (WebhookDelivery $d): Delivery => DeliveryMapper::delivery($d),
+        );
+    }
+
+    /**
+     * @return Builder<WebhookDelivery>
+     */
+    private function filtered(Scope $scope, DeliveryFilter $filter): Builder
+    {
         $query = ScopedQuery::exact($this->deliveries(), $scope);
 
         if ($filter->endpointId !== null) {
             $query->where('endpoint_id', $filter->endpointId);
+        }
+
+        if ($filter->eventId !== null) {
+            $query->where('event_id', $filter->eventId);
         }
 
         if ($filter->status !== null) {
@@ -64,13 +96,11 @@ final readonly class DatabaseDeliveries implements Deliveries
             $query->where('created_at', '>=', $filter->since);
         }
 
-        return array_values($query
-            ->orderByDesc('created_at')
-            ->orderByDesc('sequence')
-            ->limit(max(1, min(1000, $filter->limit)))
-            ->get()
-            ->map(static fn (WebhookDelivery $d) => DeliveryMapper::delivery($d))
-            ->all());
+        if ($filter->until !== null) {
+            $query->where('created_at', '<=', $filter->until);
+        }
+
+        return $query;
     }
 
     /**

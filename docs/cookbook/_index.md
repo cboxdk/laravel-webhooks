@@ -14,3 +14,4 @@ weight: 40
 - [Health check](health-check.md) — a readiness probe from the Monitor
 - [Telemetry and metrics](telemetry-metrics.md) — what to graph and alert on
 - [Erasure](erasure.md) — forget a scope
+- [Deliveries, attempts and events](history.md) — page through a scope's history with a cursor

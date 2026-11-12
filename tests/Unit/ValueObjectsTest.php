@@ -11,7 +11,9 @@ use Cbox\Webhooks\ValueObjects\EndpointHealth;
 use Cbox\Webhooks\ValueObjects\EndpointStats;
 use Cbox\Webhooks\ValueObjects\IncomingWebhook;
 use Cbox\Webhooks\ValueObjects\Overview;
+use Cbox\Webhooks\ValueObjects\Page;
 use Cbox\Webhooks\ValueObjects\PublishedEvent;
+use Cbox\Webhooks\ValueObjects\RecordedEvent;
 use Cbox\Webhooks\ValueObjects\RegisteredEndpoint;
 use Cbox\Webhooks\ValueObjects\RotatedSecret;
 
@@ -29,6 +31,10 @@ it('builds every contract-returned value object with no arguments, so a test dou
         ->and((new AttemptResult)->toArray()['outcome'])->toBe('success')
         ->and((new Overview)->toArray()['endpoints']['active'])->toBe(0)
         ->and((new IncomingWebhook)->type)->toBe('')
+        ->and((new Page)->hasMore())->toBeFalse()
+        ->and((new Page)->isEmpty())->toBeTrue()
+        ->and((new RecordedEvent)->toArray()['payload'])->toBe([])
+        ->and((new Attempt)->scope->isGlobal())->toBeTrue()
         ->and((new EndpointChanges)->isEmpty())->toBeTrue()
         ->and((new EndpointChanges(url: 'x'))->isEmpty())->toBeFalse();
 });

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cbox\Webhooks\Http\Controllers;
 
 use Cbox\Webhooks\Contracts\ScopeResolver;
+use Cbox\Webhooks\Exceptions\InvalidCursor;
 use Cbox\Webhooks\Exceptions\ScopeResolverMissing;
 use Cbox\Webhooks\ValueObjects\Scope;
 use Illuminate\Contracts\Container\Container;
@@ -35,5 +36,10 @@ trait ResolvesScope
     protected function notFound(): JsonResponse
     {
         return new JsonResponse(['error' => 'not_found'], 404);
+    }
+
+    protected function invalidCursor(InvalidCursor $e): JsonResponse
+    {
+        return new JsonResponse(['error' => 'validation', 'errors' => ['cursor' => [$e->getMessage()]]], 422);
     }
 }

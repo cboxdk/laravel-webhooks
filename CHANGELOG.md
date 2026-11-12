@@ -17,8 +17,22 @@ All notable changes to this package are documented here. The format follows
   without a partition and publish with one, either publish without it or re-register
   the endpoints in the partitioned scope (`UPDATE webhook_endpoints SET partition = ?`
   for the rows concerned). Partition-wide and global endpoints are unaffected.
+- **`Contracts\Deliveries` gains `paginate()`.** Callers are unaffected. A host class
+  that implements or decorates `Deliveries` must add the method. **Migration:** forward
+  it to the wrapped instance.
 
 ### Added
+
+- Cursor pagination, newest first, for deliveries, attempts and events:
+  `Deliveries::paginate(Scope, DeliveryFilter, ?string $cursor = null): Page`, and two
+  new contracts, `Contracts\AttemptLog::paginate(Scope, AttemptFilter, ?string $cursor)`
+  and `Contracts\EventLog` with `find(Scope, string $id): ?RecordedEvent` and
+  `paginate(Scope, EventFilter, ?string $cursor)`. `ValueObjects\Page` carries `items`
+  and an opaque `nextCursor`; `RecordedEvent`, `EventFilter` and `AttemptFilter` are
+  new; `DeliveryFilter` gains `until` and `eventId`. `Webhooks::attempts()` and
+  `Webhooks::events()` reach them. The management API gains `GET /deliveries`,
+  `GET /attempts`, `GET /events` and `GET /events/{id}`. A cursor the package did not
+  issue throws `Exceptions\InvalidCursor` (422 from the API).
 
 - `webhook_attempts` carries its delivery's scope: a new additive migration adds
   nullable `partition` and `scope_key`, fills them from each attempt's delivery and

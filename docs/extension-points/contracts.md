@@ -17,7 +17,9 @@ $this->app->bind(Deliverer::class, fn ($app) => new LoggingDeliverer($app->make(
 | --- | --- | --- |
 | `Publisher` | `PublishedEvent` | `publish`, `publishMany` |
 | `Endpoints` | `RegisteredEndpoint`, `Endpoint`, `RotatedSecret`, `AttemptResult`, `EndpointHealth`, `int` | every method takes the caller's `Scope` first |
-| `Deliveries` | `Delivery`, `list<Delivery>`, `bool` | `find` includes attempts |
+| `Deliveries` | `Delivery`, `list<Delivery>`, `Page<Delivery>`, `bool` | `find` includes attempts; `paginate` takes a cursor |
+| `AttemptLog` | `Page<Attempt>` | a scope's HTTP attempts, paginated |
+| `EventLog` | `RecordedEvent`, `Page<RecordedEvent>` | `find`, `paginate` |
 | `Deliverer` | `?AttemptResult` | `null` means the claim failed: nothing was sent |
 | `BatchFlusher` | `int` | batches formed |
 | `EventCatalog` | `EventDefinition`, `list<string>`, `bool` | `register`, `has`, `get`, `all`, `expand`, `covers` |
