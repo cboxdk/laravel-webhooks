@@ -45,8 +45,15 @@ markdown and the API show `legacy → invoice.settled`.
 A type with `offered: false` is internal: deliverable to an explicit subscription (for
 your own integrations) but invisible to `*` and to the catalog endpoint.
 
+## One catalog, or one per scope
+
+Everything above describes one catalog. The engine does not read it directly: it asks
+`Contracts\EventCatalogs` for the catalog of the scope at hand, and the default answers
+this shared one for every scope. A multi-tenant host binds its own and gives each
+customer its own types; see [A catalog per scope](../extension-points/event-catalogs.md).
+
 ## Showing it
 
-- `GET /catalog` in the management API returns the offered definitions.
+- `GET /catalog` in the management API returns the definitions of the caller's catalog.
 - `php artisan webhooks:catalog` prints a table; `--markdown` a table per group for
-  your documentation.
+  your documentation; `--scope=partition/key` the catalog of one scope.

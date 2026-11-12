@@ -7,11 +7,13 @@ namespace Cbox\Webhooks;
 use Cbox\Webhooks\Contracts\Deliveries;
 use Cbox\Webhooks\Contracts\Endpoints;
 use Cbox\Webhooks\Contracts\EventCatalog;
+use Cbox\Webhooks\Contracts\EventCatalogs;
 use Cbox\Webhooks\Contracts\Monitor;
 use Cbox\Webhooks\Contracts\Publisher;
 use Cbox\Webhooks\Contracts\Receivers;
 use Cbox\Webhooks\ValueObjects\OutboundEvent;
 use Cbox\Webhooks\ValueObjects\PublishedEvent;
+use Cbox\Webhooks\ValueObjects\Scope;
 use Illuminate\Contracts\Container\Container;
 
 /**
@@ -47,9 +49,18 @@ final readonly class WebhooksManager
         return $this->container->make(Deliveries::class);
     }
 
-    public function catalog(): EventCatalog
+    /**
+     * The shared catalog a provider registers into, or, given a scope, the
+     * catalog in force for it (the same one unless the host bound its own
+     * {@see EventCatalogs}).
+     */
+    public function catalog(?Scope $scope = null): EventCatalog
     {
-        return $this->container->make(EventCatalog::class);
+        if ($scope === null) {
+            return $this->container->make(EventCatalog::class);
+        }
+
+        return $this->container->make(EventCatalogs::class)->for($scope);
     }
 
     public function monitor(): Monitor

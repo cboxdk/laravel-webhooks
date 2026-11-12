@@ -9,7 +9,7 @@ use Cbox\Webhooks\Exceptions\UnknownEventType;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
-/** Every subscription must expand to at least one catalog type. */
+/** Every subscription must expand to at least one type of the caller's catalog. */
 final readonly class CatalogEventTypes implements ValidationRule
 {
     public function __construct(private EventCatalog $catalog) {}

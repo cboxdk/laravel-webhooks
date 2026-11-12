@@ -47,7 +47,7 @@ publish(event) ──► events table ──► one delivery per matching endpoi
 - [Getting started](getting-started/_index.md) — installation, the testing traits
 - [Core concepts](core-concepts/_index.md) — architecture, scopes, the catalog, the delivery lifecycle, retries, the breaker, batching, ordering, the envelope, monitoring
 - [Cookbook](cookbook/_index.md) — publish domain events, expose the management API, receive webhooks, replay, rotate secrets, health checks, telemetry, erasure
-- [Extension points](extension-points/_index.md) — contracts, models, the scope resolver, metrics, signature schemes
+- [Extension points](extension-points/_index.md) — contracts, models, the scope resolver, metrics, signature schemes, a catalog per scope
 - [Security](security/_index.md) — threat model, SSRF, signing, standards
 - [Configuration](configuration/_index.md) — every key in `config/webhooks.php`
 

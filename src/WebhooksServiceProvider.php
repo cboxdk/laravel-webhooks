@@ -6,6 +6,7 @@ namespace Cbox\Webhooks;
 
 use Cbox\Telemetry\TelemetryManager;
 use Cbox\Webhooks\Catalog\InMemoryEventCatalog;
+use Cbox\Webhooks\Catalog\SharedEventCatalogs;
 use Cbox\Webhooks\Console\CatalogCommand;
 use Cbox\Webhooks\Console\DeliveriesCommand;
 use Cbox\Webhooks\Console\EndpointsCommand;
@@ -20,6 +21,7 @@ use Cbox\Webhooks\Contracts\Deliveries;
 use Cbox\Webhooks\Contracts\Endpoints;
 use Cbox\Webhooks\Contracts\Erasure;
 use Cbox\Webhooks\Contracts\EventCatalog;
+use Cbox\Webhooks\Contracts\EventCatalogs;
 use Cbox\Webhooks\Contracts\Metrics;
 use Cbox\Webhooks\Contracts\Monitor;
 use Cbox\Webhooks\Contracts\Pruner;
@@ -64,6 +66,7 @@ class WebhooksServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/webhooks.php', 'webhooks');
 
         $this->app->singleton(EventCatalog::class, InMemoryEventCatalog::class);
+        $this->app->bind(EventCatalogs::class, SharedEventCatalogs::class);
         $this->app->singleton(Receivers::class, InMemoryReceivers::class);
         $this->app->singleton(WebhooksManager::class);
 

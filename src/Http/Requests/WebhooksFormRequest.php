@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Cbox\Webhooks\Http\Requests;
 
+use Cbox\Webhooks\Contracts\EventCatalog;
+use Cbox\Webhooks\Contracts\EventCatalogs;
+use Cbox\Webhooks\Contracts\ScopeResolver;
+use Cbox\Webhooks\Exceptions\ScopeResolverMissing;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -26,6 +30,21 @@ abstract class WebhooksFormRequest extends FormRequest
             'error' => 'validation',
             'errors' => $validator->errors()->toArray(),
         ], 422));
+    }
+
+    /**
+     * The catalog subscriptions are validated against: the caller's scope's,
+     * from the same resolver the controller uses.
+     */
+    protected function catalog(): EventCatalog
+    {
+        if (! $this->container->bound(ScopeResolver::class)) {
+            throw ScopeResolverMissing::make();
+        }
+
+        return $this->container->make(EventCatalogs::class)->for(
+            $this->container->make(ScopeResolver::class)->resolve($this),
+        );
     }
 
     /**

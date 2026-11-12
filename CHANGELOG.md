@@ -20,10 +20,26 @@ All notable changes to this package are documented here. The format follows
 
 ### Added
 
+- `Contracts\EventCatalogs` with `for(Scope $scope): EventCatalog`: the catalog in force
+  for a scope. The default, `Catalog\SharedEventCatalogs`, answers the shared
+  `EventCatalog` for every scope, which is the 0.1 behaviour. A multi-tenant host binds
+  its own so each customer has its own event types; publishing, subscribing, fan-out,
+  replay, the management API and `webhooks:catalog --scope=` all ask it, so a type
+  unknown in a scope is still refused there. `Webhooks::catalog(?Scope $scope = null)`,
+  `Testing\FakeEventCatalogs` and `fakeEventCatalogs()` come with it.
+
 - CI runs the whole suite on PostgreSQL 18 beside SQLite. Nothing in the engine had to
   change for it; two tests were added for what only a server shows: a second publisher
   waits on the endpoint row lock, and a duplicate idempotency key does not poison the
   host's transaction.
+
+### Changed
+
+- The shipped implementations (`DatabasePublisher`, `DatabaseEndpoints`,
+  `EndpointPolicy`, the catalog controller and form requests) take `EventCatalogs`
+  where they took `EventCatalog`, and `EndpointPolicy::assertEventTypes()` takes the
+  endpoint's scope. They are resolved from the container; nothing changes for a host
+  that does not construct them by hand.
 
 ### Security
 

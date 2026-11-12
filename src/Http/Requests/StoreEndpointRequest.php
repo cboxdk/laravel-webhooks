@@ -21,7 +21,7 @@ final class StoreEndpointRequest extends WebhooksFormRequest
 
         return [
             'url' => ['required', 'string', 'max:2048', new PublicUrl($policy->allowedSchemes())],
-            'event_types' => ['required', 'array', 'min:1', $this->container->make(CatalogEventTypes::class)],
+            'event_types' => ['required', 'array', 'min:1', new CatalogEventTypes($this->catalog())],
             'event_types.*' => ['string', 'max:128'],
             'scheme' => ['sometimes', 'string', 'in:cbox,standard-webhooks'],
             'description' => ['nullable', 'string', 'max:255'],

@@ -21,6 +21,7 @@ $this->app->bind(Deliverer::class, fn ($app) => new LoggingDeliverer($app->make(
 | `Deliverer` | `?AttemptResult` | `null` means the claim failed: nothing was sent |
 | `BatchFlusher` | `int` | batches formed |
 | `EventCatalog` | `EventDefinition`, `list<string>`, `bool` | `register`, `has`, `get`, `all`, `expand`, `covers` |
+| `EventCatalogs` | `EventCatalog` | `for(Scope)`; the shared catalog for every scope by default. See [A catalog per scope](event-catalogs.md) |
 | `Monitor` | `Overview`, `EndpointStats`, `bool` | |
 | `Sweeper`, `Pruner` | `SweepReport`, `PruneReport` | |
 | `Erasure` | `int` | |

@@ -21,7 +21,7 @@ final class UpdateEndpointRequest extends WebhooksFormRequest
 
         return [
             'url' => ['sometimes', 'string', 'max:2048', new PublicUrl($policy->allowedSchemes())],
-            'event_types' => ['sometimes', 'array', 'min:1', $this->container->make(CatalogEventTypes::class)],
+            'event_types' => ['sometimes', 'array', 'min:1', new CatalogEventTypes($this->catalog())],
             'event_types.*' => ['string', 'max:128'],
             'description' => ['sometimes', 'nullable', 'string', 'max:255'],
             'batch_size' => ['sometimes', 'integer', 'min:1', 'max:'.$policy->maxBatchSize()],

@@ -7,7 +7,7 @@ namespace Cbox\Webhooks\Endpoints;
 use Carbon\CarbonImmutable;
 use Cbox\Webhooks\Contracts\Deliverer;
 use Cbox\Webhooks\Contracts\Endpoints;
-use Cbox\Webhooks\Contracts\EventCatalog;
+use Cbox\Webhooks\Contracts\EventCatalogs;
 use Cbox\Webhooks\Delivery\EndpointDisabler;
 use Cbox\Webhooks\Delivery\JobDispatcher;
 use Cbox\Webhooks\Enums\DeliveryStatus;
@@ -48,7 +48,7 @@ final readonly class DatabaseEndpoints implements Endpoints
         private Config $config,
         private EndpointPolicy $policy,
         private EndpointMapper $mapper,
-        private EventCatalog $catalog,
+        private EventCatalogs $catalogs,
         private JobDispatcher $jobs,
         private EndpointDisabler $disabler,
         private Deliverer $deliverer,
@@ -95,7 +95,7 @@ final readonly class DatabaseEndpoints implements Endpoints
         }
 
         if ($changes->eventTypes !== null) {
-            $this->policy->assertEventTypes($changes->eventTypes);
+            $this->policy->assertEventTypes($changes->eventTypes, $scope);
             $columns['event_types'] = array_values(array_unique($changes->eventTypes));
         }
 
@@ -267,12 +267,15 @@ final readonly class DatabaseEndpoints implements Endpoints
     {
         // The subscription test runs in PHP: event_types is a JSON column and a
         // portable containment predicate is not one expression. The candidate
-        // set is one scope's active endpoints, not a table scan.
+        // set is one scope's active endpoints, not a table scan. Wildcards are
+        // read against the event's scope's catalog, where the type is defined.
+        $catalog = $this->catalogs->for($eventScope);
+
         return array_values(ScopedQuery::receiving($this->endpoints(), $eventScope)
             ->whereIn('status', [EndpointStatus::Active->value, EndpointStatus::Paused->value])
             ->orderBy('created_at')
             ->get()
-            ->filter(fn (WebhookEndpoint $e): bool => $this->catalog->covers(Json::stringList($e->event_types), $type))
+            ->filter(fn (WebhookEndpoint $e): bool => $catalog->covers(Json::stringList($e->event_types), $type))
             ->map(fn (WebhookEndpoint $e): Endpoint => $this->mapper->endpoint($e))
             ->all());
     }
@@ -334,6 +337,7 @@ final readonly class DatabaseEndpoints implements Endpoints
 
         $eventClass = $this->models->event();
         $subscriptions = Json::stringList($endpoint->event_types);
+        $catalog = $this->catalogs->for($scope);
 
         $query = ScopedQuery::exact($eventClass::query(), $scope)
             ->where('occurred_at', '>=', $request->since)
@@ -352,7 +356,7 @@ final readonly class DatabaseEndpoints implements Endpoints
         $count = 0;
 
         foreach ($query->get() as $event) {
-            if (! $this->catalog->covers($subscriptions, $event->type) && ! in_array($event->type, $request->types, true)) {
+            if (! $catalog->covers($subscriptions, $event->type) && ! in_array($event->type, $request->types, true)) {
                 continue;
             }
 
@@ -384,7 +388,7 @@ final readonly class DatabaseEndpoints implements Endpoints
     private function store(Scope $scope, NewEndpoint $spec): RegisteredEndpoint
     {
         $this->policy->assertUrl($spec->url);
-        $this->policy->assertEventTypes($spec->eventTypes);
+        $this->policy->assertEventTypes($spec->eventTypes, $scope);
         $this->policy->assertScheme($spec->scheme);
         $this->policy->assertHeaders($spec->headers);
         $this->policy->assertBatch($spec->batchSize, $spec->batchWindowSeconds);
