@@ -13,3 +13,4 @@ weight: 50
 - [Signature schemes](signature-schemes.md) — schemes beyond `cbox` and `standard-webhooks`
 - [A catalog per scope](event-catalogs.md) — each customer of a multi-tenant host with its own event types
 - [Retention per scope](retention.md) — how long each owner's history is kept
+- [Envelope formats](envelope-formats.md) — your own wire format, chosen per endpoint

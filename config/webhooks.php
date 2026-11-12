@@ -114,6 +114,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Envelopes
+    |--------------------------------------------------------------------------
+    |
+    | Every endpoint is sent the "cbox" envelope unless it chose another. The
+    | "cloudevents" format (CloudEvents 1.0, structured JSON) needs a "source":
+    | a URI-reference that identifies this producer. Null uses app.url.
+    |
+    */
+
+    'cloudevents' => [
+        'source' => null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Retries
     |--------------------------------------------------------------------------
     |

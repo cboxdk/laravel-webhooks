@@ -21,6 +21,10 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   invalid cursors, event lookup by id, the four API routes.
 - Retention per scope: the config default, a shorter and a longer window per scope,
   field-by-field fallback, scopes with only events left, the floor of one day.
+- Envelope formats per endpoint: the `cbox` bytes pinned against 0.1, CloudEvents 1.0
+  single and batch with the signature verified over the recorded body, an empty payload
+  as an object, a host-registered format, an unknown name refused on register, update
+  and in the API, a retired name failing loudly without losing the delivery.
 - Delivery: claim race, retry schedule and exhaustion, jitter, 4xx/5xx/timeout/
   connection classification, 410, 429 with `Retry-After` (seconds, HTTP date, cap),
   blocked-URL policy retries, circuit breaker (trip, wait without attempt, single probe,
@@ -44,7 +48,7 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   connection), and a repeated idempotency key inside a host transaction leaves that
   transaction usable.
 
-155 tests, 1100 assertions, including the architecture test, on SQLite in memory and on
+163 tests, 1151 assertions, including the architecture test, on SQLite in memory and on
 PostgreSQL 18 (one test needs a second connection and is skipped on SQLite). PHPStan
 level max with no ignores; Pint.
 
@@ -56,6 +60,10 @@ To run the suite on PostgreSQL locally:
 - No UI.
 - No total counts and no offset pages in the paginated listings; keyset only.
 - No per-item acknowledgement inside a batch.
+- The receiver parses the `cbox` envelope only; CloudEvents is a sending format.
+- CloudEvents binary mode (`ce-*` headers) is not offered; structured mode only. The
+  output is checked against the specification's required attributes by the tests, not
+  by an external conformance suite.
 - No mTLS, OAuth or IP allow-listing towards receivers.
 - Schemes beyond `cbox` and `standard-webhooks` are not offered by the shipped form
   request; see docs/extension-points/signature-schemes.md.

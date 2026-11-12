@@ -20,6 +20,7 @@ use Cbox\Webhooks\Contracts\BatchFlusher;
 use Cbox\Webhooks\Contracts\Deliverer;
 use Cbox\Webhooks\Contracts\Deliveries;
 use Cbox\Webhooks\Contracts\Endpoints;
+use Cbox\Webhooks\Contracts\EnvelopeFormats;
 use Cbox\Webhooks\Contracts\Erasure;
 use Cbox\Webhooks\Contracts\EventCatalog;
 use Cbox\Webhooks\Contracts\EventCatalogs;
@@ -37,6 +38,9 @@ use Cbox\Webhooks\Delivery\DatabaseBatchFlusher;
 use Cbox\Webhooks\Delivery\DatabaseDeliveries;
 use Cbox\Webhooks\Delivery\HttpDeliverer;
 use Cbox\Webhooks\Endpoints\DatabaseEndpoints;
+use Cbox\Webhooks\Envelopes\CboxEnvelope;
+use Cbox\Webhooks\Envelopes\CloudEventsEnvelope;
+use Cbox\Webhooks\Envelopes\InMemoryEnvelopeFormats;
 use Cbox\Webhooks\Housekeeping\ConfigRetentionPolicies;
 use Cbox\Webhooks\Housekeeping\DatabaseErasure;
 use Cbox\Webhooks\Housekeeping\DatabasePruner;
@@ -53,6 +57,7 @@ use Cbox\Webhooks\Telemetry\TelemetryHooks;
 use Cbox\Webhooks\Telemetry\TelemetryMetrics;
 use Cbox\Webhooks\Telemetry\TelemetryTracing;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
@@ -75,6 +80,14 @@ class WebhooksServiceProvider extends ServiceProvider
         $this->app->bind(EventCatalogs::class, SharedEventCatalogs::class);
         $this->app->singleton(Receivers::class, InMemoryReceivers::class);
         $this->app->singleton(WebhooksManager::class);
+
+        $this->app->singleton(EnvelopeFormats::class, function (Application $app): EnvelopeFormats {
+            $formats = new InMemoryEnvelopeFormats;
+            $formats->register(CboxEnvelope::NAME, new CboxEnvelope);
+            $formats->register(CloudEventsEnvelope::NAME, new CloudEventsEnvelope($this->cloudEventsSource($app)));
+
+            return $formats;
+        });
 
         $this->app->bind(Publisher::class, DatabasePublisher::class);
         $this->app->bind(Endpoints::class, DatabaseEndpoints::class);
@@ -158,6 +171,24 @@ class WebhooksServiceProvider extends ServiceProvider
                 $schedule->command('webhooks:prune')->daily()->withoutOverlapping()->name('webhooks:prune');
             }
         });
+    }
+
+    /**
+     * The CloudEvents `source`: what the host configured, else the application
+     * URL, else a URN that at least says who produced it. Never empty, because
+     * the specification requires a non-empty URI-reference.
+     */
+    private function cloudEventsSource(Application $app): string
+    {
+        $configured = $app->make(Config::class)->string('cloudevents.source');
+
+        if ($configured !== null) {
+            return $configured;
+        }
+
+        $url = $app->make(Repository::class)->get('app.url');
+
+        return is_string($url) && $url !== '' ? $url : 'urn:cbox:webhooks';
     }
 
     private function telemetryHooks(): void

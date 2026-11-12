@@ -29,11 +29,17 @@ to `^0.2` (or `^0.1 || ^0.2` while you roll out).
   affected. If you implement or decorate `Deliveries` yourself, add it (a decorator
   forwards it to the inner instance).
 
+- **An event's `occurred_at` given in another timezone is stored as the right instant.**
+  0.1 stored its wall-clock time unconverted, so `created_at` in the envelope was off by
+  the offset. Only publishers that pass an `occurredAt` in a zone other than the
+  application's are affected, and they now get the correct time.
+
 ### Migrations
 
 | Migration | Adds |
 | --- | --- |
 | `2026_11_12_000000_add_scope_to_webhook_attempts` | `partition` and `scope_key` on `webhook_attempts`, filled from each attempt's delivery, and an index on `(partition, scope_key, started_at)` |
+| `2026_11_12_000001_add_envelope_to_webhook_endpoints` | `envelope` on `webhook_endpoints`, default `cbox`: every existing endpoint keeps the envelope it had |
 
 The backfill is one `UPDATE` per column over the attempts table. On a table with many
 millions of rows, run the migration off-peak, or prune first (`webhooks:prune`).

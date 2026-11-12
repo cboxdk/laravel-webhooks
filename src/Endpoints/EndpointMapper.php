@@ -39,6 +39,7 @@ final readonly class EndpointMapper
             metadata: Json::map($model->metadata),
             createdAt: $model->created_at,
             updatedAt: $model->updated_at,
+            envelope: $model->envelope,
         );
     }
 

@@ -6,6 +6,7 @@ namespace Cbox\Webhooks\Endpoints;
 
 use Cbox\Ssrf\Contracts\UrlGuard;
 use Cbox\Ssrf\Exceptions\BlockedUrl;
+use Cbox\Webhooks\Contracts\EnvelopeFormats;
 use Cbox\Webhooks\Contracts\EventCatalogs;
 use Cbox\Webhooks\Delivery\Signer;
 use Cbox\Webhooks\Exceptions\InvalidEndpoint;
@@ -33,6 +34,7 @@ final readonly class EndpointPolicy
         private EventCatalogs $catalogs,
         private Signer $signer,
         private Config $config,
+        private EnvelopeFormats $envelopes,
     ) {}
 
     /**
@@ -101,6 +103,22 @@ final readonly class EndpointPolicy
         if (! $this->signer->canSign($scheme)) {
             throw InvalidEndpoint::schemeCannotSign($scheme);
         }
+    }
+
+    /**
+     * @throws InvalidEndpoint when no envelope format has that name
+     */
+    public function assertEnvelope(string $name): void
+    {
+        $this->envelopes->get($name);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function envelopeNames(): array
+    {
+        return $this->envelopes->names();
     }
 
     /**

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static list<\Cbox\Webhooks\ValueObjects\PublishedEvent> publishMany(list<\Cbox\Webhooks\ValueObjects\OutboundEvent> $events)
  * @method static \Cbox\Webhooks\Contracts\Endpoints endpoints()
  * @method static \Cbox\Webhooks\Contracts\Deliveries deliveries()
+ * @method static \Cbox\Webhooks\Contracts\EnvelopeFormats envelopes()
  * @method static \Cbox\Webhooks\Contracts\AttemptLog attempts()
  * @method static \Cbox\Webhooks\Contracts\EventLog events()
  * @method static \Cbox\Webhooks\Contracts\EventCatalog catalog(?\Cbox\Webhooks\ValueObjects\Scope $scope = null)

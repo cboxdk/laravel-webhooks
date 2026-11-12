@@ -23,6 +23,17 @@ All notable changes to this package are documented here. The format follows
 
 ### Added
 
+- The envelope is a strategy chosen per endpoint. `Contracts\EnvelopeFormat`
+  (`single(EnvelopeItem): EncodedEnvelope`, `batch(string, list<EnvelopeItem>):
+  EncodedEnvelope`) returns the final body and its content type; the deliverer signs
+  and sends exactly those bytes. `Contracts\EnvelopeFormats` is the registry
+  (`Webhooks::envelopes()->register($name, $format)`). Two formats ship: `cbox`, the 0.1
+  envelope byte for byte and the default, and `cloudevents`, CloudEvents 1.0 structured
+  JSON (and the batch format for batching endpoints), with `webhooks.cloudevents.source`
+  as its `source`. A new additive migration adds `webhook_endpoints.envelope` (default
+  `cbox`); `NewEndpoint`, `EndpointChanges` and `Endpoint` gain `envelope`, and the
+  management API accepts it.
+
 - Retention per scope: `Contracts\RetentionPolicies` with
   `for(Scope $scope): Retention`, and `ValueObjects\Retention(?int $deliveredDays,
   ?int $failedDays, ?int $eventsDays)` whose null fields fall back to
@@ -74,6 +85,12 @@ All notable changes to this package are documented here. The format follows
   where they took `EventCatalog`, and `EndpointPolicy::assertEventTypes()` takes the
   endpoint's scope. They are resolved from the container; nothing changes for a host
   that does not construct them by hand.
+
+### Fixed
+
+- An `OutboundEvent::$occurredAt` in a timezone other than the application's was stored
+  as its wall-clock time, shifting the instant by the offset. It is converted before it
+  is stored.
 
 ### Security
 

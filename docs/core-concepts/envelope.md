@@ -1,12 +1,26 @@
 ---
 title: Envelope
-description: The JSON body and the headers a receiver gets, for a single delivery and for a batch.
+description: The body and the headers a receiver gets, in the cbox envelope or as CloudEvents 1.0, for a single delivery and for a batch.
 weight: 29
 ---
 
 # Envelope
 
-## Single delivery
+The body is produced by the endpoint's *envelope format*. Every endpoint has one:
+`cbox` unless it chose another when it was registered or updated.
+
+| Format | Body | `Content-Type` |
+| --- | --- | --- |
+| `cbox` (default) | the package's own JSON envelope, below | `application/json` |
+| `cloudevents` | CloudEvents 1.0, structured mode, JSON | `application/cloudevents+json; charset=utf-8` |
+
+A host can register more; see [Envelope formats](../extension-points/envelope-formats.md).
+Whatever the format, the bytes it returns are signed as they are and sent as they are,
+and the headers below are the same.
+
+## The cbox envelope
+
+### Single delivery
 
 ```json
 {
@@ -22,7 +36,7 @@ weight: 29
 }
 ```
 
-## Batch
+### Batch
 
 ```json
 {
@@ -33,11 +47,46 @@ weight: 29
 }
 ```
 
+## CloudEvents
+
+```php
+new NewEndpoint('https://customer.example/hooks', ['invoice.*'], envelope: 'cloudevents');
+```
+
+```json
+{
+  "specversion": "1.0",
+  "id": "01JBF…",                              // the event id
+  "source": "https://app.example",             // webhooks.cloudevents.source
+  "type": "invoice.paid",
+  "time": "2026-10-30T12:00:00Z",              // when the event occurred, UTC
+  "subject": "eu/org_1",                       // the owner: partition/key, or the key alone
+  "datacontenttype": "application/json",
+  "deliveryid": "01JBF…",                      // extension: unique per (event, endpoint)
+  "sequence": "41",                            // extension: per endpoint, gapless
+  "sequencetype": "Integer",
+  "attempt": 1,                                // extension
+  "apiversion": "2026-10-01",                  // extension: only when the endpoint has one
+  "data": { … }                                // your payload, always an object
+}
+```
+
+- `source` + `id` identify the event, as the specification asks: a retry and a replay
+  of the same event carry the same `id`. To tell deliveries apart (a replay you want to
+  process again), use `deliveryid`.
+- `source` is `webhooks.cloudevents.source`, or `app.url` when that is not set. Set it:
+  it is how a receiver knows who produced the event.
+- `subject` is left out for an event with no owner (a global scope).
+- A batching endpoint gets the CloudEvents batch format: a JSON array of events with
+  `Content-Type: application/cloudevents-batch+json; charset=utf-8`. The batch id is in
+  `X-Webhook-Delivery`.
+- This is structured mode only. There are no `ce-*` headers.
+
 ## Headers
 
 | Header | Value |
 | --- | --- |
-| `Content-Type` | `application/json` |
+| `Content-Type` | `application/json`, or what the envelope format declares |
 | `User-Agent` | `Cbox-Webhooks/1.0 (+https://github.com/cboxdk/laravel-webhooks)` unless `webhooks.http.user_agent` is set |
 | `X-Webhook-Event` | the type, or `batch` |
 | `X-Webhook-Delivery` | the delivery id, or the batch id |

@@ -7,6 +7,7 @@ namespace Cbox\Webhooks;
 use Cbox\Webhooks\Contracts\AttemptLog;
 use Cbox\Webhooks\Contracts\Deliveries;
 use Cbox\Webhooks\Contracts\Endpoints;
+use Cbox\Webhooks\Contracts\EnvelopeFormats;
 use Cbox\Webhooks\Contracts\EventCatalog;
 use Cbox\Webhooks\Contracts\EventCatalogs;
 use Cbox\Webhooks\Contracts\EventLog;
@@ -49,6 +50,12 @@ final readonly class WebhooksManager
     public function deliveries(): Deliveries
     {
         return $this->container->make(Deliveries::class);
+    }
+
+    /** The envelope formats an endpoint may choose; register your own here. */
+    public function envelopes(): EnvelopeFormats
+    {
+        return $this->container->make(EnvelopeFormats::class);
     }
 
     /** The HTTP attempts of a scope, paginated. */

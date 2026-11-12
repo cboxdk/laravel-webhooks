@@ -24,6 +24,18 @@ final class Json
     }
 
     /**
+     * A JSON array of objects, with the same flags as {@see encode()}.
+     *
+     * @param  list<array<string, mixed>>  $values
+     *
+     * @throws JsonException
+     */
+    public static function encodeList(array $values): string
+    {
+        return json_encode($values, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
      * The body as a JSON object, or null when it is not one.
      *
      * @return array<string, mixed>|null

@@ -129,7 +129,9 @@ final readonly class DatabasePublisher implements Publisher
             'idempotency_key' => $event->idempotencyKey,
             'dedup_hash' => $this->dedupHash($event->scope, $event->idempotencyKey),
             'payload' => $event->payload,
-            'occurred_at' => $event->occurredAt ?? $now,
+            // In the application's timezone: the column holds a wall-clock time, so an
+            // instant given in another zone would otherwise be stored shifted.
+            'occurred_at' => $event->occurredAt?->setTimezone($now->getTimezone()) ?? $now,
             'created_at' => $now,
         ]);
 

@@ -32,7 +32,7 @@ caller's scope from the authenticated request. Without one every request throws
 | GET | `/endpoints` | the caller's endpoints |
 | POST | `/endpoints` | register; 201 with the secret, once |
 | GET | `/endpoints/{id}` | one endpoint with health |
-| PATCH | `/endpoints/{id}` | url, description, event_types, batch_size, batch_window_seconds, rate_limit_per_minute (null clears), headers, api_version (null clears), metadata |
+| PATCH | `/endpoints/{id}` | url, description, event_types, envelope, batch_size, batch_window_seconds, rate_limit_per_minute (null clears), headers, api_version (null clears), metadata |
 | DELETE | `/endpoints/{id}` | 204; backlog cancelled |
 | POST | `/endpoints/{id}/pause`, `/resume` | the endpoint |
 | POST | `/endpoints/{id}/rotate-secret` | `overlap_seconds` optional; the new secret, once |
@@ -62,6 +62,7 @@ POST /v1/webhooks/endpoints
   "url": "https://customer.example/hooks",
   "event_types": ["invoice.*"],
   "scheme": "standard-webhooks",
+  "envelope": "cbox",
   "description": "ERP sync",
   "headers": {"Authorization": "Bearer …"},
   "rate_limit_per_minute": 120,

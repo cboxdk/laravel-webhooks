@@ -9,6 +9,7 @@ use Cbox\Webhooks\Endpoints\EndpointPolicy;
 use Cbox\Webhooks\Http\Requests\Rules\CatalogEventTypes;
 use Cbox\Webhooks\Http\Requests\Rules\NoReservedHeaders;
 use Cbox\Webhooks\ValueObjects\EndpointChanges;
+use Illuminate\Validation\Rule;
 
 final class UpdateEndpointRequest extends WebhooksFormRequest
 {
@@ -23,6 +24,7 @@ final class UpdateEndpointRequest extends WebhooksFormRequest
             'url' => ['sometimes', 'string', 'max:2048', new PublicUrl($policy->allowedSchemes())],
             'event_types' => ['sometimes', 'array', 'min:1', new CatalogEventTypes($this->catalog())],
             'event_types.*' => ['string', 'max:128'],
+            'envelope' => ['sometimes', 'string', Rule::in($policy->envelopeNames())],
             'description' => ['sometimes', 'nullable', 'string', 'max:255'],
             'batch_size' => ['sometimes', 'integer', 'min:1', 'max:'.$policy->maxBatchSize()],
             'batch_window_seconds' => ['sometimes', 'integer', 'min:0', 'max:'.$policy->maxBatchWindow()],
@@ -49,6 +51,7 @@ final class UpdateEndpointRequest extends WebhooksFormRequest
             clearRateLimit: $this->has('rate_limit_per_minute') && $this->input('rate_limit_per_minute') === null,
             clearApiVersion: $this->has('api_version') && $this->input('api_version') === null,
             clearDescription: $this->has('description') && $this->input('description') === null,
+            envelope: $this->optionalString('envelope'),
         );
     }
 }

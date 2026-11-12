@@ -81,6 +81,7 @@ trait InteractsWithWebhooks
         ?int $rateLimitPerMinute = null,
         array $headers = [],
         ?string $apiVersion = null,
+        string $envelope = 'cbox',
     ): RegisteredEndpoint {
         $this->fakeDnsForUrl($url);
 
@@ -93,6 +94,7 @@ trait InteractsWithWebhooks
             rateLimitPerMinute: $rateLimitPerMinute,
             headers: $headers,
             apiVersion: $apiVersion,
+            envelope: $envelope,
         );
 
         return Container::getInstance()->make(Endpoints::class)->register($scope, $spec);

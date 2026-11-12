@@ -36,6 +36,14 @@ final class InvalidEndpoint extends WebhooksException
         return new self(sprintf('rate_limit_per_minute must be at least 1 when set; got %d.', $limit));
     }
 
+    /**
+     * @param  list<string>  $known
+     */
+    public static function unknownEnvelope(string $name, array $known): self
+    {
+        return new self(sprintf('Envelope format [%s] is not registered; choose one of: %s.', $name, implode(', ', $known)));
+    }
+
     public static function noEventTypes(): self
     {
         return new self('An endpoint must subscribe to at least one event type.');

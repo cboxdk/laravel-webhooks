@@ -26,5 +26,6 @@ final readonly class NewEndpoint
         public array $headers = [],
         public ?string $apiVersion = null,
         public array $metadata = [],
+        public string $envelope = 'cbox',
     ) {}
 }

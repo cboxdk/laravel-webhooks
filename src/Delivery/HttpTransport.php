@@ -32,8 +32,9 @@ final readonly class HttpTransport
 
     /**
      * @param  array<string, string>  $headers
+     * @param  string  $contentType  what the body is, as the envelope format declared it
      */
-    public function send(string $url, string $body, array $headers): TransportResult
+    public function send(string $url, string $body, array $headers, string $contentType = 'application/json'): TransportResult
     {
         $started = hrtime(true);
 
@@ -51,7 +52,7 @@ final readonly class HttpTransport
                 ->withoutRedirecting()
                 ->connectTimeout($this->config->positiveInt('http.connect_timeout', 5))
                 ->timeout($this->config->positiveInt('http.timeout', 10))
-                ->withBody($body, 'application/json')
+                ->withBody($body, $contentType)
                 ->post($url);
         } catch (ConnectionException $e) {
             return new TransportResult(

@@ -33,6 +33,7 @@ final readonly class EndpointChanges
         public bool $clearRateLimit = false,
         public bool $clearApiVersion = false,
         public bool $clearDescription = false,
+        public ?string $envelope = null,
     ) {}
 
     public function isEmpty(): bool
@@ -40,6 +41,7 @@ final readonly class EndpointChanges
         return $this->url === null && $this->description === null && $this->eventTypes === null
             && $this->batchSize === null && $this->batchWindowSeconds === null && $this->rateLimitPerMinute === null
             && $this->headers === null && $this->apiVersion === null && $this->metadata === null
-            && ! $this->clearRateLimit && ! $this->clearApiVersion && ! $this->clearDescription;
+            && ! $this->clearRateLimit && ! $this->clearApiVersion && ! $this->clearDescription
+            && $this->envelope === null;
     }
 }

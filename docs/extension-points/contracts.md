@@ -24,6 +24,7 @@ $this->app->bind(Deliverer::class, fn ($app) => new LoggingDeliverer($app->make(
 | `BatchFlusher` | `int` | batches formed |
 | `EventCatalog` | `EventDefinition`, `list<string>`, `bool` | `register`, `has`, `get`, `all`, `expand`, `covers` |
 | `EventCatalogs` | `EventCatalog` | `for(Scope)`; the shared catalog for every scope by default. See [A catalog per scope](event-catalogs.md) |
+| `EnvelopeFormats`, `EnvelopeFormat` | `EnvelopeFormat`, `EncodedEnvelope` | the registry (`register`, `get`, `has`, `names`) and one wire format. See [Envelope formats](envelope-formats.md) |
 | `Monitor` | `Overview`, `EndpointStats`, `bool` | |
 | `Sweeper`, `Pruner` | `SweepReport`, `PruneReport` | |
 | `RetentionPolicies` | `Retention` | `for(Scope)`; `webhooks.retention` for every scope by default. See [Retention per scope](retention.md) |

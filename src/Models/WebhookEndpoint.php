@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $description
  * @property array<int, mixed> $event_types
  * @property string $signature_scheme
+ * @property string $envelope
  * @property string $secret
  * @property string|null $previous_secret
  * @property CarbonImmutable|null $previous_secret_expires_at
@@ -68,6 +69,7 @@ class WebhookEndpoint extends Model
      */
     protected $attributes = [
         'signature_scheme' => 'cbox',
+        'envelope' => 'cbox',
         'status' => 'active',
         'batch_size' => 1,
         'batch_window_seconds' => 0,

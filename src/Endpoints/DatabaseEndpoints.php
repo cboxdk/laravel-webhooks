@@ -132,6 +132,11 @@ final readonly class DatabaseEndpoints implements Endpoints
             $columns['api_version'] = $changes->apiVersion;
         }
 
+        if ($changes->envelope !== null) {
+            $this->policy->assertEnvelope($changes->envelope);
+            $columns['envelope'] = $changes->envelope;
+        }
+
         if ($changes->metadata !== null) {
             $columns['metadata'] = $changes->metadata === [] ? null : $changes->metadata;
         }
@@ -393,6 +398,7 @@ final readonly class DatabaseEndpoints implements Endpoints
         $this->policy->assertHeaders($spec->headers);
         $this->policy->assertBatch($spec->batchSize, $spec->batchWindowSeconds);
         $this->policy->assertRateLimit($spec->rateLimitPerMinute);
+        $this->policy->assertEnvelope($spec->envelope);
 
         $endpointClass = $this->models->endpoint();
         $secret = SecretMinter::for($spec->scheme);
@@ -405,6 +411,7 @@ final readonly class DatabaseEndpoints implements Endpoints
             'description' => $spec->description,
             'event_types' => array_values(array_unique($spec->eventTypes)),
             'signature_scheme' => $spec->scheme,
+            'envelope' => $spec->envelope,
             'secret' => $secret,
             'status' => EndpointStatus::Active,
             'batch_size' => $spec->batchSize,

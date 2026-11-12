@@ -39,6 +39,12 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 | `http.timeout` | `10` | seconds |
 | `http.user_agent` | `null` | replaces `Cbox-Webhooks/1.0 (+…)` |
 
+## Envelopes
+
+| Key | Default | Changes |
+| --- | --- | --- |
+| `cloudevents.source` | `null` | the CloudEvents `source` of the `cloudevents` envelope; null uses `app.url` |
+
 ## Retries and the breaker
 
 | Key | Default | Changes |
