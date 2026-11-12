@@ -85,3 +85,25 @@ Jobs get lost: a queue is flushed, a worker dies mid-request. The sweep, every m
 takes a `pending` delivery that has not moved for `stranded_after_seconds`, or an
 `in_flight` one older than that, and re-queues it (the attempt it was on is kept, so a
 request that *did* go out still counts). See [Monitoring](monitoring.md).
+
+### Who gets the tick
+
+The sweep re-queues at most `webhooks.sweep_limit` rows per run. `webhooks.sweep_fairness`
+decides which, when more are due:
+
+| Value | Selection |
+| --- | --- |
+| `none` (default) | oldest first across every scope |
+| `scope` | round-robin over `(partition, key)`: every owner's oldest due row, then every owner's second, until the limit |
+| `partition` | the same, taking turns over the partition |
+
+With `none`, one owner's dead endpoint with thousands of due retries takes every tick
+until it is through, and everyone else's retries wait behind it. That is fine when one
+application owns every endpoint. A host that runs the engine for many customers sets
+`scope` or `partition`, whichever names its tenant. Nothing is wasted: an owner with
+three rows due gets three, and the rest of the tick goes to the others. Inside one owner
+the order stays oldest first, so per-endpoint sequence order is unchanged.
+
+The selection is one statement with a window function (`row_number() over (partition by
+…)`), which needs SQLite 3.25, MySQL 8, MariaDB 10.2 or any supported PostgreSQL. The
+stranded in-flight rescue uses the same rule.

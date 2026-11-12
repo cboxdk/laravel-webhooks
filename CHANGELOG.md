@@ -20,6 +20,11 @@ All notable changes to this package are documented here. The format follows
 
 ### Added
 
+- `webhooks.sweep_fairness`: `none` (default, oldest first across every scope, as in
+  0.1), `scope` or `partition`. With one of the latter the sweep spends its per-tick
+  limit round-robin over the owners that have rows due, so one owner's backlog cannot
+  delay everyone else's retries. `Enums\SweepFairness` names the values.
+
 - `Contracts\EventCatalogs` with `for(Scope $scope): EventCatalog`: the catalog in force
   for a scope. The default, `Catalog\SharedEventCatalogs`, answers the shared
   `EventCatalog` for every scope, which is the 0.1 behaviour. A multi-tenant host binds

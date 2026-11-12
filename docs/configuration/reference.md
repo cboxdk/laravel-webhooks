@@ -56,6 +56,7 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 | --- | --- | --- |
 | `stranded_after_seconds` | `900` | pending/in-flight older than this is rescued; also the unique-job window |
 | `sweep_limit` | `200` | rows re-queued per sweep |
+| `sweep_fairness` | `none` | `scope` or `partition`: spend the limit round-robin over owners instead of oldest first. See [the sweep](../core-concepts/delivery-lifecycle.md#who-gets-the-tick) |
 | `batch.max_size` | `100` | upper bound for an endpoint's `batch_size` |
 | `batch.max_window_seconds` | `300` | upper bound for `batch_window_seconds` |
 

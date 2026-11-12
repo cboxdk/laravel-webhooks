@@ -13,11 +13,13 @@ use Cbox\Webhooks\Endpoints\DatabaseEndpoints;
 use Cbox\Webhooks\Enums\DeliveryStatus;
 use Cbox\Webhooks\Enums\DisabledReason;
 use Cbox\Webhooks\Enums\EndpointStatus;
+use Cbox\Webhooks\Enums\SweepFairness;
 use Cbox\Webhooks\Models\WebhookDelivery;
 use Cbox\Webhooks\Models\WebhookEndpoint;
 use Cbox\Webhooks\Support\Config;
 use Cbox\Webhooks\Support\Models;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Expression;
 
 /**
  * The per-minute pass that makes "durable before queued" true.
@@ -30,6 +32,11 @@ use Illuminate\Database\Eloquent\Builder;
  * written so it cannot be reintroduced by a host's global scope either, which
  * is why the models here are queried through the package's own classes and
  * why the tests assert a sweep with no scope set finds the rows.
+ *
+ * Across every scope does not have to mean first come, first served. With
+ * `webhooks.sweep_fairness` set, the per-tick limit is spent round-robin over
+ * the owners that have rows due, so one owner's backlog (a dead endpoint with
+ * thousands of retries) cannot push everyone else's retries to a later tick.
  *
  * In order: terminalise orphans (one set-based update, so they never occupy a
  * slot), lease and re-queue due retries and stranded rows, flush due batches,
@@ -85,13 +92,13 @@ final readonly class DatabaseSweeper implements Sweeper
      */
     private function rescueStranded(CarbonImmutable $now, CarbonImmutable $stranded, int $limit): int
     {
-        $ids = $this->deliveries()
-            ->where('status', DeliveryStatus::InFlight->value)
-            ->where('updated_at', '<=', $stranded)
-            ->orderBy('updated_at')
-            ->limit($limit)
-            ->pluck('id')
-            ->all();
+        $ids = $this->take(
+            $this->deliveries()
+                ->where('status', DeliveryStatus::InFlight->value)
+                ->where('updated_at', '<=', $stranded),
+            true,
+            $limit,
+        );
 
         if ($ids === []) {
             return 0;
@@ -120,16 +127,24 @@ final readonly class DatabaseSweeper implements Sweeper
      */
     private function requeueDue(CarbonImmutable $now, CarbonImmutable $stranded, int $limit): int
     {
-        $due = $this->due($now, $stranded)
-            ->orderBy('next_attempt_at')
-            ->orderBy('created_at')
-            ->limit($limit)
-            ->get();
+        $ids = $this->take($this->due($now, $stranded), false, $limit);
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        $due = $this->deliveries()->whereIn('id', $ids)->get()->keyBy('id');
 
         $queued = 0;
         $lease = $now->addSeconds($this->config->positiveInt('stranded_after_seconds', 900));
 
-        foreach ($due as $delivery) {
+        foreach ($ids as $id) {
+            $delivery = $due->get($id);
+
+            if ($delivery === null) {
+                continue;
+            }
+
             $leased = $this->due($now, $stranded)
                 ->whereKey($delivery->id)
                 ->update(['next_attempt_at' => $lease, 'updated_at' => $now]);
@@ -163,6 +178,82 @@ final readonly class DatabaseSweeper implements Sweeper
                 ->orWhere(fn (Builder $pending) => $pending
                     ->where('status', DeliveryStatus::Pending->value)
                     ->where('updated_at', '<=', $stranded)));
+    }
+
+    /**
+     * Up to `$limit` ids from the candidates, oldest first.
+     *
+     * Without fairness that is the whole rule. With it, every candidate is
+     * ranked inside its owner by the same order, and the selection takes rank
+     * 1 of every owner, then rank 2, and so on until the limit: a round-robin
+     * in one statement. An owner with three rows due is fully served before
+     * the owner with three thousand gets its fourth.
+     *
+     * @param  Builder<WebhookDelivery>  $candidates
+     * @param  bool  $stranded  the in-flight rescue (ordered by last movement) rather than the due retries
+     * @return list<string>
+     */
+    private function take(Builder $candidates, bool $stranded, int $limit): array
+    {
+        $order = $stranded ? ['updated_at'] : ['next_attempt_at', 'created_at'];
+        $fairness = SweepFairness::tryFrom($this->config->string('sweep_fairness') ?? '') ?? SweepFairness::None;
+
+        if ($fairness === SweepFairness::None) {
+            foreach ($order as $column) {
+                $candidates->orderBy($column);
+            }
+
+            return $this->ids($candidates->limit($limit)->pluck('id')->all());
+        }
+
+        $backticks = in_array($candidates->getModel()->getConnection()->getDriverName(), ['mysql', 'mariadb'], true);
+
+        $ranked = $candidates
+            ->select(['id', ...$order])
+            ->addSelect(new Expression($this->rank($fairness, $stranded, $backticks)));
+
+        $query = $candidates->getQuery()->newQuery()->fromSub($ranked, 'ranked')->orderBy('fair_rank');
+
+        foreach ($order as $column) {
+            $query->orderBy($column);
+        }
+
+        return $this->ids($query->limit($limit)->pluck('id')->all());
+    }
+
+    /**
+     * The window that numbers each owner's candidates, oldest first. Spelled
+     * out per dialect because `partition` is a keyword and has to be quoted,
+     * and written as literals so no value can ever be concatenated into it.
+     *
+     * @return literal-string
+     */
+    private function rank(SweepFairness $fairness, bool $stranded, bool $backticks): string
+    {
+        if ($backticks) {
+            return match (true) {
+                $fairness === SweepFairness::Partition && $stranded => 'row_number() over (partition by `partition` order by `updated_at`) as fair_rank',
+                $fairness === SweepFairness::Partition => 'row_number() over (partition by `partition` order by `next_attempt_at`, `created_at`) as fair_rank',
+                $stranded => 'row_number() over (partition by `partition`, `scope_key` order by `updated_at`) as fair_rank',
+                default => 'row_number() over (partition by `partition`, `scope_key` order by `next_attempt_at`, `created_at`) as fair_rank',
+            };
+        }
+
+        return match (true) {
+            $fairness === SweepFairness::Partition && $stranded => 'row_number() over (partition by "partition" order by "updated_at") as fair_rank',
+            $fairness === SweepFairness::Partition => 'row_number() over (partition by "partition" order by "next_attempt_at", "created_at") as fair_rank',
+            $stranded => 'row_number() over (partition by "partition", "scope_key" order by "updated_at") as fair_rank',
+            default => 'row_number() over (partition by "partition", "scope_key" order by "next_attempt_at", "created_at") as fair_rank',
+        };
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $values
+     * @return list<string>
+     */
+    private function ids(array $values): array
+    {
+        return array_values(array_filter($values, is_string(...)));
     }
 
     private function autoDisable(CarbonImmutable $now): int

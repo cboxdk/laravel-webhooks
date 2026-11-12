@@ -166,11 +166,20 @@ return [
     | presumed lost (queue flushed, worker died) and re-queued by the sweep, up
     | to "sweep_limit" rows per tick.
     |
+    | "sweep_fairness" decides who gets those rows when more are due than the
+    | limit. "none" is oldest first across every scope: simple, and right when
+    | one application owns every endpoint. "scope" takes them round-robin over
+    | (partition, key) and "partition" round-robin over the partition, so one
+    | owner's backlog cannot delay everyone else's retries; pick the one that
+    | names your tenant.
+    |
     */
 
     'stranded_after_seconds' => 900,
 
     'sweep_limit' => 200,
+
+    'sweep_fairness' => 'none',
 
     /*
     |--------------------------------------------------------------------------

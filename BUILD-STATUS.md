@@ -22,7 +22,9 @@ What is built, what is tested, what is not. Kept honest; update it with the code
 - Batching: size, window, failure as a whole, one attempt row per item, idempotent
   grouping, multi-batch backlog, standard-webhooks id, stranded rescue.
 - Sweep: orphans, stranded pending and in-flight, lease, limit, across scopes, paused
-  and batching endpoints skipped.
+  and batching endpoints skipped. Fairness: a noisy and a quiet owner under oldest
+  first, round-robin by scope and by partition, the next tick, the stranded rescue, an
+  unknown setting.
 - Monitor numbers, percentiles, health thresholds; prune by retention; erasure.
 - Management API round trip, 404 across scopes, 422 shapes, missing resolver.
 - Receiver: 202, duplicates, batches, inline failure, queued job, gaps, 401, 400,
@@ -35,7 +37,7 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   connection), and a repeated idempotency key inside a host transaction leaves that
   transaction usable.
 
-136 tests, 969 assertions, including the architecture test, on SQLite in memory and on
+140 tests, 983 assertions, including the architecture test, on SQLite in memory and on
 PostgreSQL 18 (one test needs a second connection and is skipped on SQLite). PHPStan
 level max with no ignores; Pint.
 
@@ -50,4 +52,5 @@ To run the suite on PostgreSQL locally:
 - Schemes beyond `cbox` and `standard-webhooks` are not offered by the shipped form
   request; see docs/extension-points/signature-schemes.md.
 - Not run against MySQL or MariaDB in CI; the row-locking and conditional-update paths
-  are exercised on SQLite and PostgreSQL only.
+  are exercised on SQLite and PostgreSQL only. The fair sweep's window expression has a
+  backtick-quoted form for MySQL and MariaDB that no test executes.
