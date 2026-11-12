@@ -11,7 +11,8 @@ app(\Cbox\Webhooks\Contracts\Erasure::class)->forget(Scope::of('org_1'));   // r
 ```
 
 Removes the scope's events (and their payloads), deliveries and attempts (and their
-response excerpts). It is a hard delete in chunks, inside the scope only: a
+response excerpts). Attempts carry their delivery's scope, so they are found by an
+index even when the delivery is already gone. It is a hard delete in chunks, inside the scope only: a
 partition-wide endpoint's deliveries for other owners are not touched. Endpoints are
 configuration, not data about a person; delete them through `Endpoints::delete()` when
 the customer leaves. Inbound ledger rows are keyed by the sender's scope and are not

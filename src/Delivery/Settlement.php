@@ -301,6 +301,8 @@ final readonly class Settlement
             $attempt->fill([
                 'delivery_id' => $delivery->id,
                 'endpoint_id' => $endpoint->id,
+                'partition' => $delivery->partition,
+                'scope_key' => $delivery->scope_key,
                 'batch_id' => $batchId,
                 'attempt_number' => $delivery->attempt,
                 'started_at' => $startedAt,

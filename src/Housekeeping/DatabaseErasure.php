@@ -29,6 +29,9 @@ final readonly class DatabaseErasure implements Erasure
             $removed += $this->count($deliveryClass::query()->whereIn('id', $chunk)->delete());
         }
 
+        // Attempts carry the scope themselves; the pass above catches any written
+        // without it (before the columns existed, or by a worker still on the old code).
+        $removed += $this->count(ScopedQuery::exact($attemptClass::query(), $scope)->delete());
         $removed += $this->count(ScopedQuery::exact($eventClass::query(), $scope)->delete());
 
         return $removed;

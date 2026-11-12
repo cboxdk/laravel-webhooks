@@ -7,6 +7,9 @@ namespace Cbox\Webhooks\ValueObjects;
 use Carbon\CarbonImmutable;
 use Cbox\Webhooks\Enums\AttemptOutcome;
 
+/**
+ * One HTTP attempt as the API shows it, in the scope of its delivery.
+ */
 readonly class Attempt
 {
     public function __construct(
@@ -22,6 +25,7 @@ readonly class Attempt
         public ?string $error = null,
         public ?string $requestId = null,
         public ?string $batchId = null,
+        public Scope $scope = new Scope(null, null),
     ) {}
 
     /**
@@ -33,6 +37,7 @@ readonly class Attempt
             'id' => $this->id,
             'delivery_id' => $this->deliveryId,
             'endpoint_id' => $this->endpointId,
+            'scope' => $this->scope->toArray(),
             'batch_id' => $this->batchId,
             'attempt_number' => $this->number,
             'outcome' => $this->outcome->value,

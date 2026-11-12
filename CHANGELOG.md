@@ -20,6 +20,13 @@ All notable changes to this package are documented here. The format follows
 
 ### Added
 
+- `webhook_attempts` carries its delivery's scope: a new additive migration adds
+  nullable `partition` and `scope_key`, fills them from each attempt's delivery and
+  indexes `(partition, scope_key, started_at)`. New attempts are written with them,
+  `ValueObjects\Attempt` has a `scope`, `WebhookAttempt::scope()` exists, and
+  `Erasure::forget()` deletes a scope's attempts directly. `php artisan migrate` to
+  apply; see `docs/getting-started/upgrading.md`.
+
 - `webhooks.sweep_fairness`: `none` (default, oldest first across every scope, as in
   0.1), `scope` or `partition`. With one of the latter the sweep spends its per-tick
   limit round-robin over the owners that have rows due, so one owner's backlog cannot

@@ -14,6 +14,8 @@ What is built, what is tested, what is not. Kept honest; update it with the code
 - A catalog per scope (`EventCatalogs`): the shared default, per-scope validation on
   publish, register and update, wildcards on fan-out and replay, the API and the
   console per scope, a scope with no catalog offering nothing.
+- Scope on attempts: written for single, batched and rate-limited attempts, backfilled
+  by the migration (down and up again over real rows), erased by scope.
 - Delivery: claim race, retry schedule and exhaustion, jitter, 4xx/5xx/timeout/
   connection classification, 410, 429 with `Retry-After` (seconds, HTTP date, cap),
   blocked-URL policy retries, circuit breaker (trip, wait without attempt, single probe,
@@ -37,7 +39,7 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   connection), and a repeated idempotency key inside a host transaction leaves that
   transaction usable.
 
-140 tests, 983 assertions, including the architecture test, on SQLite in memory and on
+144 tests, 997 assertions, including the architecture test, on SQLite in memory and on
 PostgreSQL 18 (one test needs a second connection and is skipped on SQLite). PHPStan
 level max with no ignores; Pint.
 

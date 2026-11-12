@@ -40,7 +40,7 @@ All prefixed with `webhooks.table_prefix` (`webhook_`), all keyed by ULID.
   unique per scope and idempotency key.
 - `deliveries` — one per (event, endpoint): `sequence` unique per endpoint, `status`,
   `attempt`, `next_attempt_at`, `batch_id`, `last_response_code`, `last_error`.
-- `attempts` — one per HTTP request: outcome, code, duration, response excerpt,
+- `attempts` — one per HTTP request, in its delivery's scope: outcome, code, duration, response excerpt,
   `request_id`, `batch_id`.
 - `inbound_deliveries` — the receiver's ledger: unique per (endpoint name, delivery id).
 
