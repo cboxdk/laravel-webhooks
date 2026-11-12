@@ -5,6 +5,19 @@ All notable changes to this package are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- CI runs the whole suite on PostgreSQL 18 beside SQLite. Nothing in the engine had to
+  change for it; two tests were added for what only a server shows: a second publisher
+  waits on the endpoint row lock, and a duplicate idempotency key does not poison the
+  host's transaction.
+
+### Security
+
+- `composer.lock` moves `symfony/http-foundation`, `symfony/http-kernel` and
+  `symfony/routing` to 8.1.11 for the advisories published on 2026-11-04. The package's
+  constraints are unchanged; a host resolves its own versions.
+
 ## [0.1.0] - 2026-10-30
 
 ### Added

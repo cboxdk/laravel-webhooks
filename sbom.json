@@ -1,7 +1,7 @@
 {
     "bomFormat": "CycloneDX",
     "specVersion": "1.5",
-    "serialNumber": "urn:uuid:f93cb7a3-2754-4c1c-9410-382f52670d29",
+    "serialNumber": "urn:uuid:52106803-c7a6-442b-8e28-ed8ba8c18596",
     "version": 1,
     "metadata": {
         "tools": [
@@ -689,11 +689,11 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:composer/symfony/console@v8.1.10",
+            "bom-ref": "pkg:composer/symfony/console@v8.1.11",
             "group": "symfony",
             "name": "console",
-            "version": "v8.1.10",
-            "purl": "pkg:composer/symfony/console@v8.1.10",
+            "version": "v8.1.11",
+            "purl": "pkg:composer/symfony/console@v8.1.11",
             "description": "Eases the creation of beautiful and testable command line interfaces",
             "licenses": [
                 {
@@ -721,11 +721,11 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:composer/symfony/deprecation-contracts@v3.7.1",
+            "bom-ref": "pkg:composer/symfony/deprecation-contracts@v3.8.1",
             "group": "symfony",
             "name": "deprecation-contracts",
-            "version": "v3.7.1",
-            "purl": "pkg:composer/symfony/deprecation-contracts@v3.7.1",
+            "version": "v3.8.1",
+            "purl": "pkg:composer/symfony/deprecation-contracts@v3.8.1",
             "description": "A generic function and convention to trigger deprecation notices",
             "licenses": [
                 {
@@ -769,11 +769,11 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:composer/symfony/event-dispatcher-contracts@v3.7.1",
+            "bom-ref": "pkg:composer/symfony/event-dispatcher-contracts@v3.8.1",
             "group": "symfony",
             "name": "event-dispatcher-contracts",
-            "version": "v3.7.1",
-            "purl": "pkg:composer/symfony/event-dispatcher-contracts@v3.7.1",
+            "version": "v3.8.1",
+            "purl": "pkg:composer/symfony/event-dispatcher-contracts@v3.8.1",
             "description": "Generic abstractions related to dispatching event",
             "licenses": [
                 {
@@ -785,11 +785,11 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:composer/symfony/finder@v8.1.10",
+            "bom-ref": "pkg:composer/symfony/finder@v8.1.11",
             "group": "symfony",
             "name": "finder",
-            "version": "v8.1.10",
-            "purl": "pkg:composer/symfony/finder@v8.1.10",
+            "version": "v8.1.11",
+            "purl": "pkg:composer/symfony/finder@v8.1.11",
             "description": "Finds files and directories via an intuitive fluent interface",
             "licenses": [
                 {
@@ -801,11 +801,11 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:composer/symfony/http-foundation@v8.1.10",
+            "bom-ref": "pkg:composer/symfony/http-foundation@v8.1.11",
             "group": "symfony",
             "name": "http-foundation",
-            "version": "v8.1.10",
-            "purl": "pkg:composer/symfony/http-foundation@v8.1.10",
+            "version": "v8.1.11",
+            "purl": "pkg:composer/symfony/http-foundation@v8.1.11",
             "description": "Defines an object-oriented layer for the HTTP specification",
             "licenses": [
                 {
@@ -817,11 +817,11 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:composer/symfony/http-kernel@v8.1.10",
+            "bom-ref": "pkg:composer/symfony/http-kernel@v8.1.11",
             "group": "symfony",
             "name": "http-kernel",
-            "version": "v8.1.10",
-            "purl": "pkg:composer/symfony/http-kernel@v8.1.10",
+            "version": "v8.1.11",
+            "purl": "pkg:composer/symfony/http-kernel@v8.1.11",
             "description": "Provides a structured process for converting a Request into a Response",
             "licenses": [
                 {
@@ -1073,11 +1073,11 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:composer/symfony/routing@v8.1.10",
+            "bom-ref": "pkg:composer/symfony/routing@v8.1.11",
             "group": "symfony",
             "name": "routing",
-            "version": "v8.1.10",
-            "purl": "pkg:composer/symfony/routing@v8.1.10",
+            "version": "v8.1.11",
+            "purl": "pkg:composer/symfony/routing@v8.1.11",
             "description": "Maps an HTTP request to a set of configuration variables",
             "licenses": [
                 {
@@ -1089,11 +1089,11 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:composer/symfony/service-contracts@v3.7.3",
+            "bom-ref": "pkg:composer/symfony/service-contracts@v3.8.1",
             "group": "symfony",
             "name": "service-contracts",
-            "version": "v3.7.3",
-            "purl": "pkg:composer/symfony/service-contracts@v3.7.3",
+            "version": "v3.8.1",
+            "purl": "pkg:composer/symfony/service-contracts@v3.8.1",
             "description": "Generic abstractions related to writing services",
             "licenses": [
                 {
@@ -1121,11 +1121,11 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:composer/symfony/translation@v8.1.10",
+            "bom-ref": "pkg:composer/symfony/translation@v8.1.11",
             "group": "symfony",
             "name": "translation",
-            "version": "v8.1.10",
-            "purl": "pkg:composer/symfony/translation@v8.1.10",
+            "version": "v8.1.11",
+            "purl": "pkg:composer/symfony/translation@v8.1.11",
             "description": "Provides tools to internationalize your application",
             "licenses": [
                 {
@@ -1137,11 +1137,11 @@
         },
         {
             "type": "library",
-            "bom-ref": "pkg:composer/symfony/translation-contracts@v3.7.1",
+            "bom-ref": "pkg:composer/symfony/translation-contracts@v3.8.1",
             "group": "symfony",
             "name": "translation-contracts",
-            "version": "v3.7.1",
-            "purl": "pkg:composer/symfony/translation-contracts@v3.7.1",
+            "version": "v3.8.1",
+            "purl": "pkg:composer/symfony/translation-contracts@v3.8.1",
             "description": "Generic abstractions related to translation",
             "licenses": [
                 {
