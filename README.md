@@ -13,9 +13,14 @@ you. Every request is a row you can show to support.
 - **Tenancy as a value.** Every endpoint, event and delivery belongs to a `Scope`.
   Another scope's id answers `null`. Wide endpoints exist only when the operator opts in.
 - **Receivers are attacker input.** URLs pass `cboxdk/laravel-ssrf` at registration
-  and are pinned again right before each send; redirects are never followed; reserved
-  headers are refused; secrets are encrypted at rest (under `APP_KEY` or a key you
-  choose) and shown once.
+  and are pinned again right before each send; redirects are refused unless an
+  endpoint opts in to 307/308, and then every hop is guarded and pinned the same way;
+  reserved headers are refused; secrets and header values are encrypted at rest (under
+  `APP_KEY` or a key you choose) and secrets are shown once.
+- **Per-endpoint delivery policy.** Its own retry schedule and timeout, redirect
+  following, headers, the `cbox`, CloudEvents or `raw` envelope, and an optional
+  transform through an expression language you bind. Replays can name events, skip
+  what already arrived, be paced, and be counted before they are sent.
 - **Signed by `cboxdk/laravel-webhook-signature`**: `cbox` or `standard-webhooks`,
   fresh timestamp per attempt, rotation with an overlap.
 - **Observable.** Seventeen typed Laravel events, a `Monitor` with the numbers a health

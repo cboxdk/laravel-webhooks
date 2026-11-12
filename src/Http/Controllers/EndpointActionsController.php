@@ -64,6 +64,10 @@ final readonly class EndpointActionsController
             return $this->notFound();
         }
 
+        if ($request->isDryRun()) {
+            return new JsonResponse(['data' => ['replayed' => 0, 'would_replay' => $this->endpoints->countReplay($scope, $id, $request->toReplayRequest())]]);
+        }
+
         $count = $this->endpoints->replay($scope, $id, $request->toReplayRequest());
 
         return new JsonResponse(['data' => ['replayed' => $count]]);

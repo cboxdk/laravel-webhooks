@@ -160,7 +160,8 @@ it('runs the job through the deliverer with the attempt it was pushed with', fun
 });
 
 it('fixes the job timeout at dispatch from the transport budget', function (): void {
-    config(['webhooks.http.connect_timeout' => 3, 'webhooks.http.timeout' => 7]);
+    // The budget covers the highest timeout an endpoint may choose, not just the default.
+    config(['webhooks.http.connect_timeout' => 3, 'webhooks.http.timeout' => 7, 'webhooks.http.max_endpoint_timeout' => 5]);
     Bus::fake([DeliverWebhook::class]);
 
     app(Publisher::class)->publish(new OutboundEvent('user.created', $this->scope, ['id' => 1]));

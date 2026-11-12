@@ -5,6 +5,67 @@ All notable changes to this package are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-13
+
+### Breaking
+
+- **`Contracts\Endpoints` gains `countReplay(Scope $scope, string $id, ReplayRequest
+  $request): int`.** Callers are unaffected. **Migration:** a class that implements or
+  decorates `Endpoints` adds it (a decorator forwards it).
+- **`ReplayRequest::$since` is nullable**, and the constructor refuses a replay bounded
+  by neither `since` nor `eventIds` (`InvalidArgumentException`).
+- **Header values are masked in `Endpoint::toArray()`** and so in the management API
+  (`"Bearer…"`); the `headers` property keeps them opened.
+- **Stricter header rules**: at most 10, values up to 1000 characters without CR, LF or
+  NUL, token names, and `Content-Encoding` plus the `webhook-`, `x-webhook-`, `x-cbox-`
+  and `ce-` prefixes reserved. Existing endpoints keep their headers until they are set
+  again.
+- **A 429 exhausts a delivery once its schedule is spent**, instead of retrying on
+  `Retry-After` indefinitely.
+- **The delivery job timeout is sized for the highest endpoint timeout**
+  (`http.max_endpoint_timeout`, default 120 seconds). Lower it if your endpoints never
+  need that long.
+
+### Added
+
+- Safer replay. `ReplayRequest` takes `eventIds` (those events only, however old, still
+  held to the endpoint's scope and subscriptions; `ReplayRequest::events([...])`),
+  `onlyUndelivered` (skip an event with a delivery to the endpoint that succeeded or is
+  pending, in flight or awaiting a retry) and `perMinute` (delivery `i` is queued
+  `floor(i * 60 / perMinute)` seconds out, and the sweep waits for that time).
+  `Endpoints::countReplay()` answers what `replay()` would create without writing
+  anything; both use one selection. The API's replay takes `event_ids`,
+  `only_undelivered`, `per_minute` and `dry_run`; `webhooks:replay` takes `--event`,
+  `--undelivered`, `--per-minute` and `--dry-run`, and `--since` is optional with
+  `--event`.
+- A delivery policy per endpoint: `retry_schedule` (a list of seconds; `[]` is one try),
+  `timeout_seconds` and `follow_redirects`, on `NewEndpoint`, `EndpointChanges`
+  (`clearRetrySchedule`, `clearTimeout`), the `Endpoint` value object and the API.
+  Bounds: 20 entries of 1 to 604 800 seconds, a timeout of 1 to 120 seconds (or
+  `http.max_endpoint_timeout`). The jitter stays the configured one.
+- Redirect following, off by default: 307 and 308 only, at most three hops, the same
+  method, body and signature; every hop's `Location` resolved against the current URL,
+  held to https when required, validated by the SSRF guard and pinned like the first
+  URL. 301, 302 and 303 fail with `redirect_refused`, a fourth hop with
+  `too_many_redirects`. The timeout covers the whole chain.
+- Endpoint header values sealed at rest with the bound `SecretEncrypter` (a `sealed:`
+  mark; plain values from 0.2 are still read) and `Endpoint::maskedHeaders()`.
+- `Contracts\PayloadTransformer` (`validate`, `apply`) and a `transform` per endpoint
+  (up to 4000 characters, validated on register and update). The default binding
+  refuses every expression; the package ships no expression language. The result
+  replaces `data` in the `cbox` and `cloudevents` envelopes and is the body in `raw`. A
+  `TransformFailed`, a null or a non-JSON result ends the delivery at once:
+  `AttemptOutcome::TransformFailed` (`transform_failed`) on the attempt, reason
+  `transform_failed`, no retry, no breaker failure; per event in a batch.
+- The `raw` envelope format: the payload (or the transform's result) as the whole body;
+  a batch is a JSON array of them.
+- Testing: `Testing\FakePayloadTransformer` and `fakePayloadTransformer()`;
+  `registerWebhookEndpoint()` takes the delivery policy and a transform.
+- Migrations: `2026_11_13_000000_add_delivery_policy_to_webhook_endpoints` and
+  `2026_11_13_000001_seal_webhook_endpoint_headers`.
+- `guzzlehttp/psr7` is now declared directly (it was already installed through the HTTP
+  client); redirect targets are resolved with its RFC 3986 resolver.
+
 ## [0.2.1] - 2026-11-12
 
 ### Added
@@ -149,5 +210,8 @@ All notable changes to this package are documented here. The format follows
   events, `Contracts\Monitor`, the telemetry adapters, `Testing\InteractsWithWebhooks`
   and `Testing\FakeWebhooks`.
 
-[Unreleased]: https://github.com/cboxdk/laravel-webhooks/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/cboxdk/laravel-webhooks/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/cboxdk/laravel-webhooks/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/cboxdk/laravel-webhooks/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/cboxdk/laravel-webhooks/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cboxdk/laravel-webhooks/releases/tag/v0.1.0

@@ -7,6 +7,8 @@ namespace Cbox\Webhooks\Models;
 use Carbon\CarbonImmutable;
 use Cbox\Webhooks\Enums\EndpointStatus;
 use Cbox\Webhooks\Models\Casts\EncryptedSecret;
+use Cbox\Webhooks\Models\Casts\SealedHeaders;
+use Cbox\Webhooks\Support\Json;
 use Cbox\Webhooks\ValueObjects\Scope;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * self-healing after a success. The two are kept apart so a transient outage
  * never changes what the owner asked for.
  *
- * The signing secret is stored through the bound `Contracts\SecretEncrypter`
+ * The signing secret, and the values of the endpoint's own headers, are stored through the bound `Contracts\SecretEncrypter`
  * (Laravel's encrypter and `APP_KEY` unless the host binds its own). The previous secret
  * stays beside it for the rotation overlap so the receiver's secret set can
  * accept both; the deliverer always signs with the current one.
@@ -39,7 +41,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $batch_size
  * @property int $batch_window_seconds
  * @property int|null $rate_limit_per_minute
- * @property array<string, mixed>|null $headers
+ * @property array<string, string> $headers
  * @property string|null $api_version
  * @property int $last_sequence
  * @property int $consecutive_failures
@@ -51,6 +53,10 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $last_error
  * @property int|null $last_response_code
  * @property array<string, mixed>|null $metadata
+ * @property array<int, mixed>|null $retry_schedule
+ * @property int|null $timeout_seconds
+ * @property bool $follow_redirects
+ * @property string|null $transform
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
@@ -78,6 +84,7 @@ class WebhookEndpoint extends Model
         'last_sequence' => 0,
         'consecutive_failures' => 0,
         'trip_count' => 0,
+        'follow_redirects' => false,
     ];
 
     public function scope(): Scope
@@ -88,6 +95,17 @@ class WebhookEndpoint extends Model
     public function isBatching(): bool
     {
         return $this->batch_size > 1;
+    }
+
+    /**
+     * The endpoint's own retry schedule in seconds, or null for the configured
+     * one. An empty list means one try and no retries.
+     *
+     * @return list<int>|null
+     */
+    public function retrySchedule(): ?array
+    {
+        return Json::intListOrNull($this->retry_schedule);
     }
 
     /**
@@ -105,7 +123,10 @@ class WebhookEndpoint extends Model
             'batch_size' => 'integer',
             'batch_window_seconds' => 'integer',
             'rate_limit_per_minute' => 'integer',
-            'headers' => 'array',
+            'headers' => SealedHeaders::class,
+            'retry_schedule' => 'array',
+            'timeout_seconds' => 'integer',
+            'follow_redirects' => 'boolean',
             'last_sequence' => 'integer',
             'consecutive_failures' => 'integer',
             'trip_count' => 'integer',

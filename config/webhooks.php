@@ -115,6 +115,11 @@ return [
         'connect_timeout' => 5,
         'timeout' => 10,
 
+        // The highest timeout an endpoint may choose for itself (at most 120).
+        // A delivery job's own timeout is sized from it, so lower it when your
+        // endpoints never need two minutes.
+        'max_endpoint_timeout' => 120,
+
         // Null sends "Cbox-Webhooks/1.0 (+https://github.com/cboxdk/laravel-webhooks)".
         'user_agent' => null,
 
@@ -147,7 +152,8 @@ return [
     |
     | The delay before each retry, in seconds, with full jitter of +/- "jitter".
     | Eleven entries give twelve attempts over roughly two days. A failure past
-    | the last entry exhausts the delivery.
+    | the last entry exhausts the delivery. An endpoint may set its own
+    | schedule (retry_schedule); the jitter is always this one.
     |
     */
 

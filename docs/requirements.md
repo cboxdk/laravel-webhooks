@@ -16,6 +16,7 @@ enforces.
 | `ext-json` | `*` |
 | `cboxdk/laravel-ssrf` | `^1.5` |
 | `cboxdk/laravel-webhook-signature` | `^0.1` |
+| `guzzlehttp/psr7` | `^2.7 \|\| ^3.0` |
 | `psr/log` | `^3.0` |
 | `symfony/http-foundation` | `^7.0 \|\| ^8.0` |
 

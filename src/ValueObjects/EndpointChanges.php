@@ -19,6 +19,7 @@ final readonly class EndpointChanges
      * @param  list<string>|null  $eventTypes
      * @param  array<string, string>|null  $headers
      * @param  array<string, mixed>|null  $metadata
+     * @param  list<int>|null  $retrySchedule  seconds between attempts; `[]` is one try
      */
     public function __construct(
         public ?string $url = null,
@@ -34,6 +35,13 @@ final readonly class EndpointChanges
         public bool $clearApiVersion = false,
         public bool $clearDescription = false,
         public ?string $envelope = null,
+        public ?array $retrySchedule = null,
+        public ?int $timeoutSeconds = null,
+        public ?bool $followRedirects = null,
+        public ?string $transform = null,
+        public bool $clearRetrySchedule = false,
+        public bool $clearTimeout = false,
+        public bool $clearTransform = false,
     ) {}
 
     public function isEmpty(): bool
@@ -42,6 +50,8 @@ final readonly class EndpointChanges
             && $this->batchSize === null && $this->batchWindowSeconds === null && $this->rateLimitPerMinute === null
             && $this->headers === null && $this->apiVersion === null && $this->metadata === null
             && ! $this->clearRateLimit && ! $this->clearApiVersion && ! $this->clearDescription
-            && $this->envelope === null;
+            && $this->envelope === null
+            && $this->retrySchedule === null && $this->timeoutSeconds === null && $this->followRedirects === null
+            && $this->transform === null && ! $this->clearRetrySchedule && ! $this->clearTimeout && ! $this->clearTransform;
     }
 }

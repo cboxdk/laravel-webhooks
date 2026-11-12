@@ -37,7 +37,8 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 | --- | --- | --- |
 | `queue.connection`, `queue.queue` | `null` | where delivery jobs run |
 | `http.connect_timeout` | `5` | seconds |
-| `http.timeout` | `10` | seconds |
+| `http.timeout` | `10` | seconds; an endpoint's `timeout_seconds` replaces it |
+| `http.max_endpoint_timeout` | `120` | the highest `timeout_seconds` an endpoint may choose (never above 120); a delivery job's timeout is sized from it |
 | `http.user_agent` | `null` | replaces `Cbox-Webhooks/1.0 (+…)` |
 | `http.headers` | `[]` | sent on every request; an endpoint's own headers win. Per endpoint: [`RequestProfiles`](../extension-points/request-profiles.md) |
 

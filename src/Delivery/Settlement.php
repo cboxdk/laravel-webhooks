@@ -33,7 +33,8 @@ use Illuminate\Contracts\Events\Dispatcher;
  *  - 410: exhausted at once and the endpoint disabled (reason `gone`). The
  *    receiver asked us to stop; the standard thing is to listen.
  *  - 429: a retry after `Retry-After` (capped at the schedule's maximum) or the
- *    backoff, counted as rate-limited, not against the breaker.
+ *    backoff, counted as rate-limited, not against the breaker; exhausted once
+ *    the schedule is spent, like any other failure.
  *  - Any other 4xx, 5xx, a timeout or a connection error: a retry on the
  *    schedule and a breaker failure. A 404 may be a deploy gap, so it is not
  *    treated as final.
@@ -87,9 +88,11 @@ final readonly class Settlement
 
         $maxAttempt = $this->highestAttempt($deliveries);
 
+        $schedule = $endpoint->retrySchedule();
+
         $delay = $outcome === AttemptOutcome::RateLimited
-            ? $this->rateLimitDelay($result, $maxAttempt, $now)
-            : $this->backoff->delayAfter($maxAttempt);
+            ? $this->rateLimitDelay($result, $maxAttempt, $schedule, $now)
+            : $this->backoff->delayAfter($maxAttempt, $schedule);
 
         if ($outcome->countsAgainstEndpoint()) {
             $closesAt = $this->breaker->recordFailure($endpoint, $now, $result->error, $code, $probing);
@@ -156,6 +159,27 @@ final readonly class Settlement
         }
 
         return $this->result($deliveries, $result === null ? AttemptOutcome::Cancelled : $result->outcome, DeliveryStatus::Exhausted, $result, null, null, $reason);
+    }
+
+    /**
+     * The endpoint's transform could not produce a body: recorded as an
+     * attempt (`transform_failed`, with the transformer's message) and
+     * exhausted at once. The same event and expression fail the same way on
+     * every retry, and the receiver did nothing wrong, so there is no retry and
+     * no breaker failure.
+     *
+     * @param  list<WebhookDelivery>  $deliveries
+     */
+    public function transformFailed(array $deliveries, WebhookEndpoint $endpoint, string $message): AttemptResult
+    {
+        $now = CarbonImmutable::now();
+        $result = TransportResult::policy(AttemptOutcome::TransformFailed, mb_strcut('transform_failed: '.$message, 0, 1000, 'UTF-8'));
+        $attempts = $this->recordAttempts($deliveries, $endpoint, $result, AttemptOutcome::TransformFailed, null, $now);
+
+        $this->metrics->counter('webhooks.delivery.outcome', count($deliveries), ['outcome' => AttemptOutcome::TransformFailed->value, 'code_class' => 'none']);
+        $this->announceAttempts($deliveries, $attempts);
+
+        return $this->exhaust($deliveries, $endpoint, 'transform_failed', $result);
     }
 
     /**
@@ -333,16 +357,26 @@ final readonly class Settlement
         }
     }
 
-    /** `Retry-After` when the receiver sent one, capped at the schedule's largest wait; the backoff otherwise. */
-    private function rateLimitDelay(TransportResult $result, int $attempt, CarbonImmutable $now): ?int
+    /**
+     * `Retry-After` when the receiver sent one, capped at the schedule's largest
+     * wait; the backoff otherwise. Null once the schedule is spent: a receiver
+     * answering 429 forever does not keep a delivery alive forever.
+     *
+     * @param  list<int>|null  $schedule
+     */
+    private function rateLimitDelay(TransportResult $result, int $attempt, ?array $schedule, CarbonImmutable $now): ?int
     {
+        if ($this->backoff->spent($attempt, $schedule)) {
+            return null;
+        }
+
         $requested = RetryAfter::seconds($result->retryAfter, $now);
 
         if ($requested !== null) {
-            return min($requested, $this->backoff->maxDelay());
+            return min($requested, $this->backoff->maxDelay($schedule));
         }
 
-        return $this->backoff->delayAfter($attempt);
+        return $this->backoff->delayAfter($attempt, $schedule);
     }
 
     /**

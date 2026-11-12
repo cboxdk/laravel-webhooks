@@ -25,7 +25,8 @@ use stdClass;
  *  - `subject` is the owner the event belongs to, `partition/key` (or the key
  *    alone); omitted for an event with no owner.
  *  - `time` is when the event occurred, RFC 3339, UTC.
- *  - `data` is the published payload, always a JSON object.
+ *  - `data` is the published payload, always a JSON object, or the
+ *    endpoint's transform result.
  *
  * What CloudEvents has no attribute for travels as extension attributes:
  * `deliveryid` (unique per event and endpoint: deduplicate a delivery on it),
@@ -85,7 +86,8 @@ final readonly class CloudEventsEnvelope implements EnvelopeFormat
         }
 
         // An empty PHP array would encode as a list; the payload is an object.
-        $event['data'] = $item->data === [] ? new stdClass : $item->data;
+        // A transform's result is sent as it came.
+        $event['data'] = ! $item->isTransformed && $item->data === [] ? new stdClass : $item->payload();
 
         return $event;
     }

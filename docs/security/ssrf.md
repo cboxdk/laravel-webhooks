@@ -23,8 +23,13 @@ The package applies `cboxdk/laravel-ssrf` twice:
    `blocked_url` outcome: the delivery retries on the schedule without counting against
    the endpoint, since the owner may fix DNS.
 
-Redirects are never followed: a public URL that 302s to an internal one gets a failed
-attempt, not a request.
+Redirects are not followed by default: a public URL that 302s to an internal one gets a
+failed attempt, not a request. An endpoint may opt in with `followRedirects`; then only
+307 and 308 are followed, at most three hops, and every hop's `Location` goes through
+step 2 exactly like the endpoint's own URL: resolved against the URL that sent it,
+https required when https is, validated by the guard, and the connection pinned to the
+addresses validated for that hop. A hop to a private address is a `blocked_url` attempt
+and no request is made to it. See [Delivery policy](../core-concepts/delivery-policy.md#redirects).
 
 The `allow_http` switch exists for a local receiver in development. Leave it off in
 production; an http endpoint sends signed payloads in clear.

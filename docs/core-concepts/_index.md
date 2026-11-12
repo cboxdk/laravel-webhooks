@@ -16,3 +16,4 @@ weight: 20
 - [Sequencing and ordering](sequencing-and-ordering.md) — what the sequence number promises
 - [Envelope](envelope.md) — the JSON body and headers a receiver gets
 - [Monitoring](monitoring.md) — the Monitor contract, metrics and the sweep
+- [Delivery policy](delivery-policy.md) — an endpoint's own retry schedule, timeout, redirects and sealed headers

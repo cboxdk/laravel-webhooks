@@ -88,8 +88,19 @@ interface Endpoints
     /** A synchronous `webhook.ping`, recorded as a normal delivery and attempt. */
     public function ping(Scope $scope, string $id): ?AttemptResult;
 
-    /** Re-create deliveries for stored events; returns how many. */
+    /**
+     * Re-create deliveries for stored events; returns how many. See
+     * {@see ReplayRequest} for the selection (time range, event ids, types,
+     * undelivered only) and the pacing.
+     */
     public function replay(Scope $scope, string $id, ReplayRequest $request): int;
+
+    /**
+     * How many deliveries {@see replay()} would re-create for the same request,
+     * right now, without writing anything: the number to show before a person
+     * confirms a replay. Zero for an endpoint the scope does not own.
+     */
+    public function countReplay(Scope $scope, string $id, ReplayRequest $request): int;
 
     public function health(Scope $scope, string $id): ?EndpointHealth;
 }

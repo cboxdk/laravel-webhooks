@@ -24,9 +24,14 @@ final readonly class JobDispatcher
 
     public function __construct(private Config $config, private HttpTransport $transport) {}
 
-    public function delivery(string $deliveryId, int $expectedAttempt): void
+    /** A delay holds the job back that many seconds; a paced replay uses it. */
+    public function delivery(string $deliveryId, int $expectedAttempt, int $delaySeconds = 0): void
     {
-        $this->route(new PendingDispatch(new DeliverWebhook($deliveryId, $expectedAttempt, $this->strandedAfter(), $this->timeout())));
+        $pending = $this->route(new PendingDispatch(new DeliverWebhook($deliveryId, $expectedAttempt, $this->strandedAfter(), $this->timeout())));
+
+        if ($delaySeconds > 0) {
+            $pending->delay($delaySeconds);
+        }
     }
 
     public function batch(string $batchId): void

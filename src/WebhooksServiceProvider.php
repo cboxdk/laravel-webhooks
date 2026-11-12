@@ -27,6 +27,7 @@ use Cbox\Webhooks\Contracts\EventCatalogs;
 use Cbox\Webhooks\Contracts\EventLog;
 use Cbox\Webhooks\Contracts\Metrics;
 use Cbox\Webhooks\Contracts\Monitor;
+use Cbox\Webhooks\Contracts\PayloadTransformer;
 use Cbox\Webhooks\Contracts\Pruner;
 use Cbox\Webhooks\Contracts\Publisher;
 use Cbox\Webhooks\Contracts\Receivers;
@@ -46,6 +47,7 @@ use Cbox\Webhooks\Endpoints\DatabaseEndpoints;
 use Cbox\Webhooks\Envelopes\CboxEnvelope;
 use Cbox\Webhooks\Envelopes\CloudEventsEnvelope;
 use Cbox\Webhooks\Envelopes\InMemoryEnvelopeFormats;
+use Cbox\Webhooks\Envelopes\RawEnvelope;
 use Cbox\Webhooks\Housekeeping\ConfigRetentionPolicies;
 use Cbox\Webhooks\Housekeeping\DatabaseErasure;
 use Cbox\Webhooks\Housekeeping\DatabasePruner;
@@ -61,6 +63,7 @@ use Cbox\Webhooks\Support\Config;
 use Cbox\Webhooks\Telemetry\TelemetryHooks;
 use Cbox\Webhooks\Telemetry\TelemetryMetrics;
 use Cbox\Webhooks\Telemetry\TelemetryTracing;
+use Cbox\Webhooks\Transforms\UnavailablePayloadTransformer;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -90,6 +93,7 @@ class WebhooksServiceProvider extends ServiceProvider
             $formats = new InMemoryEnvelopeFormats;
             $formats->register(CboxEnvelope::NAME, new CboxEnvelope);
             $formats->register(CloudEventsEnvelope::NAME, new CloudEventsEnvelope($this->cloudEventsSource($app)));
+            $formats->register(RawEnvelope::NAME, new RawEnvelope);
 
             return $formats;
         });
@@ -107,6 +111,7 @@ class WebhooksServiceProvider extends ServiceProvider
         $this->app->bind(RetentionPolicies::class, ConfigRetentionPolicies::class);
         $this->app->bind(RequestProfiles::class, ConfigRequestProfiles::class);
         $this->app->bind(SecretEncrypter::class, ApplicationSecretEncrypter::class);
+        $this->app->bind(PayloadTransformer::class, UnavailablePayloadTransformer::class);
         $this->app->bind(Erasure::class, DatabaseErasure::class);
         $this->app->bind(SubjectErasure::class, DatabaseErasure::class);
 

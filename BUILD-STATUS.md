@@ -35,6 +35,27 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   blocked-URL policy retries, circuit breaker (trip, wait without attempt, single probe,
   doubling cooldown with cap, recovery), rate limit, auto-disable (settlement and sweep),
   deleted-endpoint and pruned-event terminalisation.
+- Replay selection (0.3): named events however old, held to scope and subscriptions;
+  undelivered only (skips delivered, pending, in flight and awaiting retry); the limit
+  filled past unsubscribed rows; `countReplay` equal to what `replay` creates and
+  writing nothing; pacing by `floor(i * 60 / perMinute)` with the sweep waiting for a
+  paced row's due time; one flush for a batching endpoint; the API's `dry_run` and the
+  command's `--dry-run`.
+- Delivery policy per endpoint (0.3): own retry schedule (and `[]` as one try, also on a
+  429), `Retry-After` stopping once the schedule is spent, own timeout passed to the
+  client, bounds refused on register, update and in the API, clearing back to defaults.
+- Redirects (0.3): 307 and 308 followed with the same method, body and signature;
+  301/302/303 refused; three hops; every hop through the SSRF guard (private address and
+  plain http refused) and pinned to its own addresses; a redirect without `Location`.
+- Headers (0.3): values sealed through the bound encrypter with a `sealed:` mark,
+  0.2 plaintext still read, the sealing migration up, again and down, masked in
+  `toArray()`, reserved names and prefixes, token names, CR/LF, length, ten at most.
+- Transforms (0.3): refused with no transformer bound, validated on register and
+  update, the event as input, the result in `data` for `cbox` and `cloudevents` and as
+  the body for `raw`, a throw or a null result exhausting with `transform_failed` and
+  no retry, per event in a batch.
+- The `raw` envelope (0.3): payload only, signed under both schemes, empty payload as
+  `{}`, batch as an array.
 - Batching: size, window, failure as a whole, one attempt row per item, idempotent
   grouping, multi-batch backlog, standard-webhooks id, stranded rescue.
 - Sweep: orphans, stranded pending and in-flight, lease, limit, across scopes, paused
@@ -53,7 +74,7 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   connection), and a repeated idempotency key inside a host transaction leaves that
   transaction usable.
 
-169 tests, 1205 assertions, including the architecture test, on SQLite in memory and on
+249 tests, 1453 assertions, including the architecture test, on SQLite in memory and on
 PostgreSQL 18 (one test needs a second connection and is skipped on SQLite). PHPStan
 level max with no ignores; Pint.
 
@@ -70,6 +91,10 @@ To run the suite on PostgreSQL locally:
   output is checked against the specification's required attributes by the tests, not
   by an external conformance suite.
 - No mTLS, OAuth or IP allow-listing towards receivers.
+- No expression language for transforms: the host binds a `PayloadTransformer`.
+- A replay to a batching endpoint is not paced per delivery; its batch size and window
+  pace it. A pacing delay longer than the queue allows (SQS: 15 minutes) falls back on
+  the sweep after the due time plus `stranded_after_seconds`.
 - Schemes beyond `cbox` and `standard-webhooks` are not offered by the shipped form
   request; see docs/extension-points/signature-schemes.md.
 - Not run against MySQL or MariaDB in CI; the row-locking and conditional-update paths

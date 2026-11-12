@@ -48,4 +48,44 @@ final class InvalidEndpoint extends WebhooksException
     {
         return new self('An endpoint must subscribe to at least one event type.');
     }
+
+    public static function headerName(string $name): self
+    {
+        return new self(sprintf('Header name [%s] is not a valid HTTP token.', $name));
+    }
+
+    public static function headerValue(string $name, int $max): self
+    {
+        return new self(sprintf('The value of header [%s] must be at most %d characters with no line breaks.', $name, $max));
+    }
+
+    public static function tooManyHeaders(int $count, int $max): self
+    {
+        return new self(sprintf('An endpoint may set at most %d headers; got %d.', $max, $count));
+    }
+
+    public static function retryScheduleOutOfBounds(int $maxEntries, int $maxDelay): self
+    {
+        return new self(sprintf('retry_schedule must be at most %d entries, each 1..%d seconds.', $maxEntries, $maxDelay));
+    }
+
+    public static function timeoutOutOfBounds(int $timeout, int $max): self
+    {
+        return new self(sprintf('timeout_seconds must be 1..%d; got %d.', $max, $timeout));
+    }
+
+    public static function transformTooLong(int $max): self
+    {
+        return new self(sprintf('A transform must be 1..%d characters.', $max));
+    }
+
+    public static function invalidTransform(string $reason): self
+    {
+        return new self(sprintf('The transform is invalid: %s', $reason));
+    }
+
+    public static function noPayloadTransformer(): self
+    {
+        return new self('Transforms are not available: no payload transformer is configured. Bind Contracts\PayloadTransformer to enable them.');
+    }
 }

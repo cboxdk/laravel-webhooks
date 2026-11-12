@@ -31,7 +31,7 @@ final readonly class EndpointMapper
             batchSize: $model->batch_size,
             batchWindowSeconds: $model->batch_window_seconds,
             rateLimitPerMinute: $model->rate_limit_per_minute,
-            headers: Json::stringMap($model->headers),
+            headers: $model->headers,
             apiVersion: $model->api_version,
             lastSequence: $model->last_sequence,
             previousSecretExpiresAt: $model->previous_secret_expires_at,
@@ -40,6 +40,10 @@ final readonly class EndpointMapper
             createdAt: $model->created_at,
             updatedAt: $model->updated_at,
             envelope: $model->envelope,
+            retrySchedule: $model->retrySchedule(),
+            timeoutSeconds: $model->timeout_seconds,
+            followRedirects: $model->follow_redirects,
+            transform: $model->transform,
         );
     }
 

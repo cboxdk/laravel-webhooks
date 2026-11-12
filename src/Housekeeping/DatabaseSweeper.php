@@ -177,7 +177,12 @@ final readonly class DatabaseSweeper implements Sweeper
                     ->where('next_attempt_at', '<=', $now))
                 ->orWhere(fn (Builder $pending) => $pending
                     ->where('status', DeliveryStatus::Pending->value)
-                    ->where('updated_at', '<=', $stranded)));
+                    ->where('updated_at', '<=', $stranded)
+                    // A paced replay's row is due at next_attempt_at; its job
+                    // is lost only once the window has passed that time too.
+                    ->where(fn (Builder $due) => $due
+                        ->whereNull('next_attempt_at')
+                        ->orWhere('next_attempt_at', '<=', $stranded))));
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Cbox\Webhooks\Delivery;
 use Carbon\CarbonImmutable;
 use Cbox\Webhooks\Contracts\Deliverer;
 use Cbox\Webhooks\Contracts\EnvelopeFormats;
+use Cbox\Webhooks\Contracts\PayloadTransformer;
 use Cbox\Webhooks\Contracts\RequestProfiles;
 use Cbox\Webhooks\Contracts\Tracing;
 use Cbox\Webhooks\Endpoints\EndpointMapper;
@@ -14,17 +15,19 @@ use Cbox\Webhooks\Enums\AttemptOutcome;
 use Cbox\Webhooks\Enums\DeliveryStatus;
 use Cbox\Webhooks\Enums\EndpointStatus;
 use Cbox\Webhooks\Enums\SpanKind;
+use Cbox\Webhooks\Exceptions\TransformFailed;
 use Cbox\Webhooks\Models\WebhookDelivery;
 use Cbox\Webhooks\Models\WebhookEndpoint;
 use Cbox\Webhooks\Models\WebhookEvent;
 use Cbox\Webhooks\Monitoring\ScopeAttributes;
 use Cbox\Webhooks\Monitoring\SpanContext;
-use Cbox\Webhooks\Support\Json;
 use Cbox\Webhooks\Support\Models;
 use Cbox\Webhooks\ValueObjects\AttemptResult;
 use Cbox\Webhooks\ValueObjects\EncodedEnvelope;
+use Cbox\Webhooks\ValueObjects\EnvelopeItem;
 use Cbox\WebhookSignature\Contracts\Clock;
 use Illuminate\Database\Eloquent\Builder;
+use JsonException;
 
 /**
  * The worker side of the engine: claim, check, send, settle.
@@ -39,6 +42,10 @@ use Illuminate\Database\Eloquent\Builder;
  * breaker, a full rate-limit window) hand the attempt number back, because they
  * are this side's decisions and must not spend the delivery's retry budget.
  * Everything that reaches the transport spends one.
+ *
+ * When the endpoint has a transform it is applied to each event before the
+ * format sees it. A transform that fails ends that delivery at once
+ * (`transform_failed`): it would fail the same way on every retry.
  *
  * The body comes from the endpoint's envelope format as final bytes. Those
  * bytes are signed and those bytes are sent; nothing re-encodes them. A format
@@ -61,6 +68,7 @@ final readonly class HttpDeliverer implements Deliverer
         private RequestProfiles $profiles,
         private EndpointMapper $mapper,
         private ScopeAttributes $scopeAttributes,
+        private PayloadTransformer $transformer,
     ) {}
 
     public function deliver(string $deliveryId, int $expectedAttempt): ?AttemptResult
@@ -98,7 +106,13 @@ final readonly class HttpDeliverer implements Deliverer
             return $this->settlement->exhaust([$delivery], $endpoint, 'event_pruned');
         }
 
-        $envelope = $format->single(Envelope::item($delivery, $event, $endpoint));
+        try {
+            $item = $this->prepare($delivery, $event, $endpoint);
+        } catch (TransformFailed $e) {
+            return $this->settlement->transformFailed([$delivery], $endpoint, $e->getMessage());
+        }
+
+        $envelope = $format->single($item);
 
         $result = $this->send($endpoint, $delivery->id, $delivery->type, (string) $delivery->sequence, $delivery->attempt, $envelope);
 
@@ -138,11 +152,19 @@ final readonly class HttpDeliverer implements Deliverer
         foreach ($deliveries as $delivery) {
             $event = $events->get($delivery->event_id);
 
-            if ($event instanceof WebhookEvent) {
-                $items[] = Envelope::item($delivery, $event, $endpoint);
-                $kept[] = $delivery;
-            } else {
+            if (! $event instanceof WebhookEvent) {
                 $pruned[] = $delivery;
+
+                continue;
+            }
+
+            // A transform is applied per event; the one that fails leaves the
+            // batch and the rest are sent.
+            try {
+                $items[] = $this->prepare($delivery, $event, $endpoint);
+                $kept[] = $delivery;
+            } catch (TransformFailed $e) {
+                $this->settlement->transformFailed([$delivery], $endpoint, $e->getMessage());
             }
         }
 
@@ -219,7 +241,7 @@ final readonly class HttpDeliverer implements Deliverer
         // then everything the signature and the transport depend on.
         $headers = [
             ...$profile->headers,
-            ...Json::stringMap($endpoint->headers),
+            ...$endpoint->headers,
             ...$this->signer->headers($endpoint->signature_scheme, $endpoint->secret, $body, $messageId, $timestamp),
             'X-Webhook-Event' => $type,
             'X-Webhook-Delivery' => $messageId,
@@ -239,7 +261,15 @@ final readonly class HttpDeliverer implements Deliverer
         ];
 
         return $this->tracing->span('webhooks.deliver', SpanKind::Client, $attributes, function (SpanContext $span) use ($endpoint, $envelope, $headers, $profile): TransportResult {
-            $result = $this->transport->send($endpoint->url, $envelope->body, $headers, $envelope->contentType, $profile->userAgent);
+            $result = $this->transport->send(
+                $endpoint->url,
+                $envelope->body,
+                $headers,
+                $envelope->contentType,
+                $profile->userAgent,
+                $endpoint->timeout_seconds,
+                $endpoint->follow_redirects,
+            );
 
             $span->set('webhook.outcome', $result->outcome->value);
 
@@ -253,6 +283,43 @@ final readonly class HttpDeliverer implements Deliverer
 
             return $result;
         });
+    }
+
+    /**
+     * The envelope item for one delivery, with the endpoint's transform
+     * applied when it has one. The transformer sees the event, not the
+     * delivery: what was published, when, about whom.
+     *
+     * @throws TransformFailed when the transform throws, yields null or yields something JSON cannot carry
+     */
+    private function prepare(WebhookDelivery $delivery, WebhookEvent $event, WebhookEndpoint $endpoint): EnvelopeItem
+    {
+        $item = Envelope::item($delivery, $event, $endpoint);
+        $expression = $endpoint->transform;
+
+        if ($expression === null) {
+            return $item;
+        }
+
+        $result = $this->transformer->apply($expression, [
+            'id' => $event->id,
+            'type' => $delivery->type,
+            'occurred_at' => $event->occurred_at->toIso8601String(),
+            'subject' => $event->subject,
+            'data' => $item->data,
+        ]);
+
+        if ($result === null) {
+            throw TransformFailed::nullResult();
+        }
+
+        try {
+            json_encode($result, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            throw TransformFailed::notJson($e->getMessage());
+        }
+
+        return $item->withTransformed($result);
     }
 
     /**

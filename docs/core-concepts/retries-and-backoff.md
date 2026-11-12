@@ -18,6 +18,10 @@ the last entry exhausts the delivery (`DeliveryExhausted` with reason
 `retries_exhausted`). Shorten the list for a faster give-up; set it to `[]` for a single
 attempt.
 
+An endpoint can carry its own schedule (`retrySchedule` on `NewEndpoint` or
+`EndpointChanges`), which replaces this one for that endpoint; `[]` there is one try and
+no retries. See [Delivery policy](delivery-policy.md).
+
 ## Jitter
 
 Each delay is multiplied by a random factor in `[1 - jitter, 1 + jitter]`
@@ -29,7 +33,9 @@ not retry together. Set it to `0` in tests.
 On a 429 the engine reads `Retry-After` as seconds or an HTTP date (RFC 9110) and
 waits that long, capped at the largest entry in the schedule so a receiver cannot park a
 delivery for a week. Without the header the schedule applies. A 429 never counts against
-the endpoint's health: the receiver is alive and talking.
+the endpoint's health: the receiver is alive and talking. Once the schedule is spent, a
+429 exhausts the delivery like any other failure, so a receiver that answers 429 forever
+does not keep a delivery alive forever (0.2 kept retrying it).
 
 ## What spends the budget
 

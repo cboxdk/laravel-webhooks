@@ -29,10 +29,15 @@ final class UpdateEndpointRequest extends WebhooksFormRequest
             'batch_size' => ['sometimes', 'integer', 'min:1', 'max:'.$policy->maxBatchSize()],
             'batch_window_seconds' => ['sometimes', 'integer', 'min:0', 'max:'.$policy->maxBatchWindow()],
             'rate_limit_per_minute' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100000'],
-            'headers' => ['sometimes', 'array', 'max:20', $this->container->make(NoReservedHeaders::class)],
-            'headers.*' => ['string', 'max:1024'],
+            'headers' => ['sometimes', 'array', $this->container->make(NoReservedHeaders::class)],
+            'headers.*' => ['string'],
             'api_version' => ['sometimes', 'nullable', 'string', 'max:64'],
             'metadata' => ['sometimes', 'array'],
+            'retry_schedule' => ['sometimes', 'nullable', 'array', 'max:'.EndpointPolicy::MAX_RETRY_ENTRIES],
+            'retry_schedule.*' => ['integer', 'min:1', 'max:'.EndpointPolicy::MAX_RETRY_DELAY_SECONDS],
+            'timeout_seconds' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:'.$policy->maxTimeout()],
+            'follow_redirects' => ['sometimes', 'boolean'],
+            'transform' => ['sometimes', 'nullable', 'string', 'max:'.EndpointPolicy::MAX_TRANSFORM_LENGTH],
         ];
     }
 
@@ -52,6 +57,13 @@ final class UpdateEndpointRequest extends WebhooksFormRequest
             clearApiVersion: $this->has('api_version') && $this->input('api_version') === null,
             clearDescription: $this->has('description') && $this->input('description') === null,
             envelope: $this->optionalString('envelope'),
+            retrySchedule: $this->has('retry_schedule') && $this->input('retry_schedule') !== null ? $this->intList('retry_schedule') : null,
+            timeoutSeconds: $this->optionalInt('timeout_seconds'),
+            followRedirects: $this->optionalBool('follow_redirects'),
+            transform: $this->optionalString('transform'),
+            clearRetrySchedule: $this->has('retry_schedule') && $this->input('retry_schedule') === null,
+            clearTimeout: $this->has('timeout_seconds') && $this->input('timeout_seconds') === null,
+            clearTransform: $this->has('transform') && $this->input('transform') === null,
         );
     }
 }
