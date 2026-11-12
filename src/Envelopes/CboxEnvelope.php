@@ -44,7 +44,7 @@ final class CboxEnvelope implements EnvelopeFormat
             'sequence' => $item->sequence,
             'scope' => $item->scope->toArray(),
             'api_version' => $item->apiVersion,
-            'data' => $item->data,
+            'data' => $item->payload(),
         ];
     }
 

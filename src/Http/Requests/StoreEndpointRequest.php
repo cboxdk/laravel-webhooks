@@ -30,10 +30,15 @@ final class StoreEndpointRequest extends WebhooksFormRequest
             'batch_size' => ['sometimes', 'integer', 'min:1', 'max:'.$policy->maxBatchSize()],
             'batch_window_seconds' => ['sometimes', 'integer', 'min:0', 'max:'.$policy->maxBatchWindow()],
             'rate_limit_per_minute' => ['nullable', 'integer', 'min:1', 'max:100000'],
-            'headers' => ['sometimes', 'array', 'max:20', $this->container->make(NoReservedHeaders::class)],
-            'headers.*' => ['string', 'max:1024'],
+            'headers' => ['sometimes', 'array', $this->container->make(NoReservedHeaders::class)],
+            'headers.*' => ['string'],
             'api_version' => ['nullable', 'string', 'max:64'],
             'metadata' => ['sometimes', 'array'],
+            'retry_schedule' => ['sometimes', 'nullable', 'array', 'max:'.EndpointPolicy::MAX_RETRY_ENTRIES],
+            'retry_schedule.*' => ['integer', 'min:1', 'max:'.EndpointPolicy::MAX_RETRY_DELAY_SECONDS],
+            'timeout_seconds' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:'.$policy->maxTimeout()],
+            'follow_redirects' => ['sometimes', 'boolean'],
+            'transform' => ['sometimes', 'nullable', 'string', 'max:'.EndpointPolicy::MAX_TRANSFORM_LENGTH],
         ];
     }
 
@@ -51,6 +56,10 @@ final class StoreEndpointRequest extends WebhooksFormRequest
             apiVersion: $this->optionalString('api_version'),
             metadata: $this->map('metadata'),
             envelope: $this->optionalString('envelope') ?? 'cbox',
+            retrySchedule: $this->input('retry_schedule') === null ? null : $this->intList('retry_schedule'),
+            timeoutSeconds: $this->optionalInt('timeout_seconds'),
+            followRedirects: $this->boolean('follow_redirects'),
+            transform: $this->optionalString('transform'),
         );
     }
 }

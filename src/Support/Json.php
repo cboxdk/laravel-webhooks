@@ -36,6 +36,22 @@ final class Json
     }
 
     /**
+     * Any JSON value with the same flags as {@see encode()}: what a `raw`
+     * envelope or a transform produced. An empty array is written as `{}`,
+     * because a payload is an object even when it has no fields.
+     *
+     * @throws JsonException
+     */
+    public static function encodeValue(mixed $value): string
+    {
+        if ($value === []) {
+            return '{}';
+        }
+
+        return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
      * The body as a JSON object, or null when it is not one.
      *
      * @return array<string, mixed>|null
@@ -119,6 +135,29 @@ final class Json
         foreach (self::map($value) as $key => $item) {
             if (is_string($item)) {
                 $out[$key] = $item;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * A stored JSON list of integers (an endpoint's retry schedule), or null
+     * when the column is null.
+     *
+     * @return list<int>|null
+     */
+    public static function intListOrNull(mixed $value): ?array
+    {
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $out = [];
+
+        foreach ($value as $item) {
+            if (is_int($item)) {
+                $out[] = $item;
             }
         }
 

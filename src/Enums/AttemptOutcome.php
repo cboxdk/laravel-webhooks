@@ -21,6 +21,9 @@ enum AttemptOutcome: string
     case RateLimited = 'rate_limited';
     case Cancelled = 'cancelled';
 
+    /** The endpoint's transform threw or gave null: permanent, no retry, never the receiver's fault. */
+    case TransformFailed = 'transform_failed';
+
     /** Left pending without an attempt because the endpoint is paused. Never written as an attempt row. */
     case Deferred = 'deferred';
 

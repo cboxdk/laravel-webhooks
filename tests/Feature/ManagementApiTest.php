@@ -34,7 +34,8 @@ it('round-trips an endpoint through the API', function (): void {
         ->assertJsonPath('data.url', 'https://receiver.test/hooks')
         ->assertJsonPath('data.scope.key', 'org_1')
         ->assertJsonPath('data.status', 'active')
-        ->assertJsonPath('data.headers.Authorization', 'Bearer t');
+        // Sealed at rest and masked on the way out: the API never echoes a header's secret.
+        ->assertJsonPath('data.headers.Authorization', 'Be…');
     $id = $created->json('data.id');
     $secret = $created->json('data.secret');
     expect($secret)->toHaveLength(64);

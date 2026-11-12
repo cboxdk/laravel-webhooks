@@ -9,6 +9,7 @@ use Cbox\Webhooks\Catalog\EventDefinition;
 use Cbox\Webhooks\Contracts\Endpoints;
 use Cbox\Webhooks\Contracts\EventCatalog;
 use Cbox\Webhooks\Contracts\EventCatalogs;
+use Cbox\Webhooks\Contracts\PayloadTransformer;
 use Cbox\Webhooks\Contracts\Publisher;
 use Cbox\Webhooks\Contracts\Receivers;
 use Cbox\Webhooks\Contracts\RetentionPolicies;
@@ -64,12 +65,27 @@ trait InteractsWithWebhooks
     }
 
     /**
+     * Bind the fake payload transformer and hand it back. An expression you do
+     * not define passes `data` through unchanged; `define()` gives one a
+     * closure and `refuse()` makes one fail validation.
+     */
+    protected function fakePayloadTransformer(): FakePayloadTransformer
+    {
+        $fake = new FakePayloadTransformer;
+
+        Container::getInstance()->instance(PayloadTransformer::class, $fake);
+
+        return $fake;
+    }
+
+    /**
      * Register an endpoint in a scope, through the real registry. Fixes DNS for
      * the URL's host to a public address so the SSRF guard accepts it, unless
      * the host was already faked.
      *
      * @param  list<string>  $eventTypes
      * @param  array<string, string>  $headers
+     * @param  list<int>|null  $retrySchedule
      */
     protected function registerWebhookEndpoint(
         Scope $scope,
@@ -82,6 +98,10 @@ trait InteractsWithWebhooks
         array $headers = [],
         ?string $apiVersion = null,
         string $envelope = 'cbox',
+        ?array $retrySchedule = null,
+        ?int $timeoutSeconds = null,
+        bool $followRedirects = false,
+        ?string $transform = null,
     ): RegisteredEndpoint {
         $this->fakeDnsForUrl($url);
 
@@ -95,6 +115,10 @@ trait InteractsWithWebhooks
             headers: $headers,
             apiVersion: $apiVersion,
             envelope: $envelope,
+            retrySchedule: $retrySchedule,
+            timeoutSeconds: $timeoutSeconds,
+            followRedirects: $followRedirects,
+            transform: $transform,
         );
 
         return Container::getInstance()->make(Endpoints::class)->register($scope, $spec);

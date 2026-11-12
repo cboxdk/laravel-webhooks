@@ -36,6 +36,7 @@ use Cbox\Webhooks\ValueObjects\Scope;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * The registry over the endpoint table. Every lookup for a caller goes through
@@ -139,6 +140,31 @@ final readonly class DatabaseEndpoints implements Endpoints
 
         if ($changes->metadata !== null) {
             $columns['metadata'] = $changes->metadata === [] ? null : $changes->metadata;
+        }
+
+        if ($changes->clearRetrySchedule) {
+            $columns['retry_schedule'] = null;
+        } elseif ($changes->retrySchedule !== null) {
+            $this->policy->assertRetrySchedule($changes->retrySchedule);
+            $columns['retry_schedule'] = $changes->retrySchedule;
+        }
+
+        if ($changes->clearTimeout) {
+            $columns['timeout_seconds'] = null;
+        } elseif ($changes->timeoutSeconds !== null) {
+            $this->policy->assertTimeout($changes->timeoutSeconds);
+            $columns['timeout_seconds'] = $changes->timeoutSeconds;
+        }
+
+        if ($changes->followRedirects !== null) {
+            $columns['follow_redirects'] = $changes->followRedirects;
+        }
+
+        if ($changes->clearTransform) {
+            $columns['transform'] = null;
+        } elseif ($changes->transform !== null) {
+            $this->policy->assertTransform($changes->transform);
+            $columns['transform'] = $changes->transform;
         }
 
         if ($columns !== []) {
@@ -340,36 +366,26 @@ final readonly class DatabaseEndpoints implements Endpoints
             return 0;
         }
 
-        $eventClass = $this->models->event();
-        $subscriptions = Json::stringList($endpoint->event_types);
-        $catalog = $this->catalogs->for($scope);
+        $events = $this->replaySelection($endpoint, $scope, $request);
+        $now = CarbonImmutable::now();
 
-        $query = ScopedQuery::exact($eventClass::query(), $scope)
-            ->where('occurred_at', '>=', $request->since)
-            ->orderBy('occurred_at')
-            ->orderBy('id')
-            ->limit(max(1, $request->limit));
-
-        if ($request->until !== null) {
-            $query->where('occurred_at', '<=', $request->until);
+        foreach ($events as $index => $event) {
+            $this->requeueEvent($endpoint, $event, $endpoint->isBatching() ? 0 : $request->delayFor($index), $now);
         }
 
-        if ($request->types !== []) {
-            $query->whereIn('type', $request->types);
+        // One flush for the whole run: the batch size and window pace a batching endpoint.
+        if ($events !== [] && $endpoint->isBatching()) {
+            $this->jobs->flush($endpoint->id, $endpoint->batch_window_seconds);
         }
 
-        $count = 0;
+        return count($events);
+    }
 
-        foreach ($query->get() as $event) {
-            if (! $catalog->covers($subscriptions, $event->type) && ! in_array($event->type, $request->types, true)) {
-                continue;
-            }
+    public function countReplay(Scope $scope, string $id, ReplayRequest $request): int
+    {
+        $endpoint = $this->owned($scope, $id);
 
-            $this->requeueEvent($endpoint, $event);
-            $count++;
-        }
-
-        return $count;
+        return $endpoint === null ? 0 : count($this->replaySelection($endpoint, $scope, $request));
     }
 
     public function health(Scope $scope, string $id): ?EndpointHealth
@@ -399,6 +415,9 @@ final readonly class DatabaseEndpoints implements Endpoints
         $this->policy->assertBatch($spec->batchSize, $spec->batchWindowSeconds);
         $this->policy->assertRateLimit($spec->rateLimitPerMinute);
         $this->policy->assertEnvelope($spec->envelope);
+        $this->policy->assertRetrySchedule($spec->retrySchedule);
+        $this->policy->assertTimeout($spec->timeoutSeconds);
+        $this->policy->assertTransform($spec->transform);
 
         $endpointClass = $this->models->endpoint();
         $secret = SecretMinter::for($spec->scheme);
@@ -420,6 +439,10 @@ final readonly class DatabaseEndpoints implements Endpoints
             'headers' => $spec->headers === [] ? null : $spec->headers,
             'api_version' => $spec->apiVersion,
             'metadata' => $spec->metadata === [] ? null : $spec->metadata,
+            'retry_schedule' => $spec->retrySchedule,
+            'timeout_seconds' => $spec->timeoutSeconds,
+            'follow_redirects' => $spec->followRedirects,
+            'transform' => $spec->transform,
         ]);
         $endpoint->save();
 
@@ -453,11 +476,95 @@ final readonly class DatabaseEndpoints implements Endpoints
         return $pending->count();
     }
 
-    private function requeueEvent(WebhookEndpoint $endpoint, WebhookEvent $event): void
+    /**
+     * The events a replay would re-create deliveries for, oldest first: the one
+     * selection both {@see replay()} and {@see countReplay()} use, so the count
+     * a person confirms is the count that is sent.
+     *
+     * Bounded by the request's time range and ids, held to the endpoint's
+     * scope, its subscriptions (or the types the request names) and, when
+     * asked, to events with no delivery to this endpoint that succeeded or is
+     * still under way. The subscription test runs in PHP (wildcards are the
+     * catalog's), so the rows are read in pages until the limit is filled.
+     *
+     * @return list<WebhookEvent>
+     */
+    private function replaySelection(WebhookEndpoint $endpoint, Scope $scope, ReplayRequest $request): array
+    {
+        $eventClass = $this->models->event();
+        $deliveryClass = $this->models->delivery();
+        $subscriptions = Json::stringList($endpoint->event_types);
+        $catalog = $this->catalogs->for($scope);
+        $limit = max(1, $request->limit);
+
+        $query = ScopedQuery::exact($eventClass::query(), $scope);
+
+        if ($request->since !== null) {
+            $query->where('occurred_at', '>=', $request->since);
+        }
+
+        if ($request->until !== null) {
+            $query->where('occurred_at', '<=', $request->until);
+        }
+
+        if ($request->types !== []) {
+            $query->whereIn('type', $request->types);
+        }
+
+        if ($request->eventIds !== []) {
+            $query->whereIn('id', array_values(array_unique($request->eventIds)));
+        }
+
+        if ($request->onlyUndelivered) {
+            $deliveries = (new $deliveryClass)->getTable();
+            $events = $query->getModel()->getTable();
+
+            $query->whereNotExists(fn (QueryBuilder $sub) => $sub
+                ->from($deliveries)
+                ->whereColumn($deliveries.'.event_id', $events.'.id')
+                ->where($deliveries.'.endpoint_id', $endpoint->id)
+                ->whereIn($deliveries.'.status', [
+                    DeliveryStatus::Delivered->value,
+                    DeliveryStatus::Pending->value,
+                    DeliveryStatus::InFlight->value,
+                    DeliveryStatus::Failed->value,
+                ]));
+        }
+
+        $selected = [];
+        $page = max(100, $limit);
+        $offset = 0;
+
+        while (count($selected) < $limit) {
+            $rows = $query->clone()->orderBy('occurred_at')->orderBy('id')->offset($offset)->limit($page)->get();
+
+            foreach ($rows as $event) {
+                if (! $catalog->covers($subscriptions, $event->type) && ! in_array($event->type, $request->types, true)) {
+                    continue;
+                }
+
+                $selected[] = $event;
+
+                if (count($selected) >= $limit) {
+                    break;
+                }
+            }
+
+            if ($rows->count() < $page) {
+                break;
+            }
+
+            $offset += $page;
+        }
+
+        return $selected;
+    }
+
+    private function requeueEvent(WebhookEndpoint $endpoint, WebhookEvent $event, int $delaySeconds, CarbonImmutable $now): void
     {
         $deliveryClass = $this->models->delivery();
 
-        $this->db->connection($endpoint->getConnectionName())->transaction(function () use ($endpoint, $event, $deliveryClass): void {
+        $this->db->connection($endpoint->getConnectionName())->transaction(function () use ($endpoint, $event, $deliveryClass, $delaySeconds, $now): void {
             $locked = $this->endpoints()->whereKey($endpoint->id)->lockForUpdate()->first();
             $sequence = ($locked ?? $endpoint)->last_sequence + 1;
             $this->endpoints()->whereKey($endpoint->id)->update(['last_sequence' => $sequence]);
@@ -473,13 +580,14 @@ final readonly class DatabaseEndpoints implements Endpoints
                 'sequence' => $sequence,
                 'status' => DeliveryStatus::Pending,
                 'attempt' => 0,
+                // A paced delivery says when it is due, so the sweep's lost-job
+                // rescue waits for that time rather than sending it early.
+                'next_attempt_at' => $delaySeconds > 0 ? $now->addSeconds($delaySeconds) : null,
             ]);
             $delivery->save();
 
-            if ($endpoint->isBatching()) {
-                $this->jobs->flush($endpoint->id, $endpoint->batch_window_seconds);
-            } else {
-                $this->jobs->delivery($delivery->id, 0);
+            if (! $endpoint->isBatching()) {
+                $this->jobs->delivery($delivery->id, 0, $delaySeconds);
             }
         });
     }

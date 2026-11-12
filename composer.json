@@ -28,6 +28,7 @@
         "ext-json": "*",
         "cboxdk/laravel-ssrf": "^1.5",
         "cboxdk/laravel-webhook-signature": "^0.1",
+        "guzzlehttp/psr7": "^2.7 || ^3.0",
         "illuminate/bus": "^12.0 || ^13.0",
         "illuminate/console": "^12.0 || ^13.0",
         "illuminate/contracts": "^12.0 || ^13.0",

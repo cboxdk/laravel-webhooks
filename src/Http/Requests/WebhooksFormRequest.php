@@ -112,4 +112,30 @@ abstract class WebhooksFormRequest extends FormRequest
 
         return is_numeric($value) ? (int) $value : null;
     }
+
+    /**
+     * @return list<int>
+     */
+    protected function intList(string $key): array
+    {
+        $value = $this->input($key);
+        $out = [];
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        foreach ($value as $item) {
+            if (is_int($item) || (is_string($item) && ctype_digit($item))) {
+                $out[] = (int) $item;
+            }
+        }
+
+        return $out;
+    }
+
+    protected function optionalBool(string $key): ?bool
+    {
+        return $this->has($key) && $this->input($key) !== null ? $this->boolean($key) : null;
+    }
 }

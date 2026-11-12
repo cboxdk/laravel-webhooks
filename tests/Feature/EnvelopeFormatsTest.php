@@ -144,7 +144,7 @@ it('refuses an unknown envelope on register and update, and switches a known one
     $this->fakeDnsForUrl('https://receiver.test/hooks');
 
     expect(fn () => $endpoints->register($this->scope, new NewEndpoint('https://receiver.test/hooks', ['user.created'], envelope: 'protobuf')))
-        ->toThrow(InvalidEndpoint::class, 'Envelope format [protobuf] is not registered; choose one of: cbox, cloudevents.');
+        ->toThrow(InvalidEndpoint::class, 'Envelope format [protobuf] is not registered; choose one of: cbox, cloudevents, raw.');
 
     $registered = $endpoints->register($this->scope, new NewEndpoint('https://receiver.test/hooks', ['user.created']));
 
@@ -171,7 +171,7 @@ it('lets a host register its own format and sends and signs whatever bytes it re
         }
     });
 
-    expect(app(EnvelopeFormats::class)->names())->toBe(['cbox', 'cloudevents', 'line'])
+    expect(app(EnvelopeFormats::class)->names())->toBe(['cbox', 'cloudevents', 'raw', 'line'])
         ->and(app(EnvelopeFormats::class)->get('cbox'))->toBeInstanceOf(CboxEnvelope::class)
         ->and(app(EnvelopeFormats::class)->get('cloudevents'))->toBeInstanceOf(CloudEventsEnvelope::class);
 
