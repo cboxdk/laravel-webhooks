@@ -16,3 +16,4 @@ weight: 50
 - [Envelope formats](envelope-formats.md) — your own wire format, chosen per endpoint
 - [User agent and fixed headers](request-profiles.md) — per endpoint or scope
 - [Secret encryption key](secret-encrypter.md) — keep signing secrets under a key other than `APP_KEY`
+- [Payload transformer](payload-transformer.md) — reshape events per endpoint with the expression language you choose

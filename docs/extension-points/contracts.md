@@ -16,7 +16,7 @@ $this->app->bind(Deliverer::class, fn ($app) => new LoggingDeliverer($app->make(
 | Contract | Returns | Notes |
 | --- | --- | --- |
 | `Publisher` | `PublishedEvent` | `publish`, `publishMany` |
-| `Endpoints` | `RegisteredEndpoint`, `Endpoint`, `RotatedSecret`, `AttemptResult`, `EndpointHealth`, `int` | every method takes the caller's `Scope` first |
+| `Endpoints` | `RegisteredEndpoint`, `Endpoint`, `RotatedSecret`, `AttemptResult`, `EndpointHealth`, `int` | every method takes the caller's `Scope` first; `countReplay` answers what `replay` would create |
 | `Deliveries` | `Delivery`, `list<Delivery>`, `Page<Delivery>`, `bool` | `find` includes attempts; `paginate` takes a cursor |
 | `AttemptLog` | `Page<Attempt>` | a scope's HTTP attempts, paginated |
 | `EventLog` | `RecordedEvent`, `Page<RecordedEvent>` | `find`, `paginate` |
@@ -26,7 +26,8 @@ $this->app->bind(Deliverer::class, fn ($app) => new LoggingDeliverer($app->make(
 | `EventCatalogs` | `EventCatalog` | `for(Scope)`; the shared catalog for every scope by default. See [A catalog per scope](event-catalogs.md) |
 | `EnvelopeFormats`, `EnvelopeFormat` | `EnvelopeFormat`, `EncodedEnvelope` | the registry (`register`, `get`, `has`, `names`) and one wire format. See [Envelope formats](envelope-formats.md) |
 | `RequestProfiles` | `RequestProfile` | `for(Endpoint)`; the user agent and fixed headers. See [User agent and fixed headers](request-profiles.md) |
-| `SecretEncrypter` | `string` | `encrypt`, `decrypt`; `APP_KEY` by default. See [Secret encryption key](secret-encrypter.md) |
+| `SecretEncrypter` | `string` | `encrypt`, `decrypt`; `APP_KEY` by default. Seals signing secrets and endpoint header values. See [Secret encryption key](secret-encrypter.md) |
+| `PayloadTransformer` | `mixed` | `validate`, `apply`; refuses every expression by default. See [Payload transformer](payload-transformer.md) |
 | `Monitor` | `Overview`, `EndpointStats`, `bool` | |
 | `Sweeper`, `Pruner` | `SweepReport`, `PruneReport` | |
 | `RetentionPolicies` | `Retention` | `for(Scope)`; `webhooks.retention` for every scope by default. See [Retention per scope](retention.md) |

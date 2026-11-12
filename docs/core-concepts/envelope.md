@@ -1,6 +1,6 @@
 ---
 title: Envelope
-description: The body and the headers a receiver gets, in the cbox envelope or as CloudEvents 1.0, for a single delivery and for a batch.
+description: The body and the headers a receiver gets, in the cbox envelope, as CloudEvents 1.0 or raw, for a single delivery and for a batch.
 weight: 29
 ---
 
@@ -13,6 +13,7 @@ The body is produced by the endpoint's *envelope format*. Every endpoint has one
 | --- | --- | --- |
 | `cbox` (default) | the package's own JSON envelope, below | `application/json` |
 | `cloudevents` | CloudEvents 1.0, structured mode, JSON | `application/cloudevents+json; charset=utf-8` |
+| `raw` | the payload alone, below | `application/json` |
 
 A host can register more; see [Envelope formats](../extension-points/envelope-formats.md).
 Whatever the format, the bytes it returns are signed as they are and sent as they are,
@@ -82,6 +83,28 @@ new NewEndpoint('https://customer.example/hooks', ['invoice.*'], envelope: 'clou
   `X-Webhook-Delivery`.
 - This is structured mode only. There are no `ce-*` headers.
 
+## Raw
+
+The body is the published payload as JSON and nothing else, or the endpoint's
+[transform](../extension-points/payload-transformer.md) result when it has one. An empty
+payload is `{}`. For a receiver that expects its own shape and would reject an envelope.
+
+```json
+{"id": "inv_1", "amount": 4200}
+```
+
+Nothing about the delivery is lost: the signature headers sign these bytes as with any
+format, the type is in `X-Webhook-Event`, the delivery id in `X-Webhook-Delivery` and
+`Idempotency-Key` (and `webhook-id` under Standard Webhooks), the attempt and sequence
+in their own headers. A batching endpoint gets a JSON array of the payloads, in sequence
+order.
+
+## Transforms
+
+When the endpoint has a transform, its result replaces `data` in the `cbox` and
+`cloudevents` envelopes and is the whole body in `raw`. See
+[Payload transformer](../extension-points/payload-transformer.md).
+
 ## Headers
 
 | Header | Value |
@@ -100,9 +123,10 @@ new NewEndpoint('https://customer.example/hooks', ['invoice.*'], envelope: 'clou
 | fixed headers | the host's: `webhooks.http.headers`, or a [request profile](../extension-points/request-profiles.md) |
 
 Reserved headers cannot be set as static headers: `Host`, `Content-Length`,
-`Content-Type`, `Transfer-Encoding`, `Connection`, `User-Agent`, `Idempotency-Key`,
-`traceparent`, `tracestate`, the `X-Webhook-*` set, and every signature header of the
-supported schemes.
+`Content-Type`, `Content-Encoding`, `Transfer-Encoding`, `Connection`, `User-Agent`,
+`Idempotency-Key`, `traceparent`, `tracestate`, every signature header of the supported
+schemes, and any name starting with `webhook-`, `x-webhook-`, `x-cbox-` or `ce-`. Static
+header values are sealed at rest; see [Delivery policy](delivery-policy.md#headers).
 
 ## Versioning
 

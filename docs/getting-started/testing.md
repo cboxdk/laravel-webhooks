@@ -56,6 +56,12 @@ Shape the receiver's answers with `Http::fake()` as usual: `Http::fake(['custome
 before publishing. `recordedWebhookRequests($url)` returns `[Request, envelope]` pairs,
 with batch envelopes flattened to their items.
 
+`registerWebhookEndpoint()` takes the delivery policy too (`retrySchedule`,
+`timeoutSeconds`, `followRedirects`, `transform`). For an endpoint with a transform, bind
+the fake transformer first: `$this->fakePayloadTransformer()->define('pick', fn (array
+$input) => ['id' => $input['id']])`. An expression you do not define passes `data`
+through unchanged.
+
 Time is `CarbonImmutable::setTestNow()`; retries are due when the clock says so. Run
 the sweep with `deliverPendingWebhooks()` to push whatever is due:
 

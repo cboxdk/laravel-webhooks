@@ -50,7 +50,7 @@ or a rate limit spends no retry budget.
 The envelope is built, signed with a fresh timestamp, and posted with the endpoint's
 static headers plus `X-Webhook-Event`, `X-Webhook-Delivery`, `X-Webhook-Sequence`,
 `X-Webhook-Attempt`, `Idempotency-Key` (the delivery id) and, with telemetry, a
-`traceparent`. Redirects are not followed. The URL is re-resolved and pinned by
+`traceparent`. Redirects are not followed unless the endpoint asks for it, and then only 307 and 308 ([Delivery policy](delivery-policy.md#redirects)). The URL is re-resolved and pinned by
 `cboxdk/laravel-ssrf` right before the request.
 
 ## 5. Settlement
@@ -69,7 +69,7 @@ the events.
 | past the last schedule entry | exhausted, `retries_exhausted` | failure counted | `DeliveryExhausted` |
 
 A 408 counts like any other 4xx: a receiver that times out reading the request is not
-healthy. A 3xx is a failure too, since redirects are never followed.
+healthy. A 3xx is a failure too, unless the endpoint follows redirects and it is a 307 or 308 within three hops. A transform that fails ends the delivery at once with `transform_failed`, without a retry.
 
 `DeliveryAttempted` fires for every outcome that made a request.
 

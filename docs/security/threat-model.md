@@ -15,11 +15,22 @@ workers' network position.
 
 **Endpoint URLs.** A customer can point an endpoint anywhere. See [SSRF](ssrf.md):
 only public https hosts, validated at registration and pinned right before every
-request, redirects never followed, `http` off by default.
+request, redirects not followed unless the endpoint opts in (then 307/308 only, every
+hop guarded and pinned like the first URL), `http` off by default.
 
-**Static headers.** A customer can set headers. Reserved ones (host, content framing,
-signature headers, the engine's own) are refused so a header cannot forge a signature
-or smuggle a request. Values are sent as given; your HTTP client encodes them.
+**Static headers.** A customer can set up to ten headers. Reserved ones (host, content
+framing, the user agent, signature headers, the engine's own and the `webhook-`,
+`x-webhook-`, `x-cbox-` and `ce-` prefixes) are refused so a header cannot forge a
+signature or pose as the engine; names must be HTTP tokens and values cannot contain CR,
+LF or NUL, so a header cannot smuggle another. Values are sealed at rest with the bound
+`SecretEncrypter`, because they often hold the receiver's credentials, and shown masked
+by `Endpoint::toArray()`.
+
+**Transforms.** An endpoint's transform is an expression for the host's bound
+`PayloadTransformer`; the package ships none and refuses every expression by default.
+Choose a language that runs no code (a query language, not a template engine with
+callbacks), because the endpoint owner writes the expression and it runs in your
+worker.
 
 **Inbound webhooks.** A request to a receiving route is unauthenticated until the
 signature verifies; the middleware verifies before it parses. The body is bounded by

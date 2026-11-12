@@ -32,12 +32,12 @@ caller's scope from the authenticated request. Without one every request throws
 | GET | `/endpoints` | the caller's endpoints |
 | POST | `/endpoints` | register; 201 with the secret, once |
 | GET | `/endpoints/{id}` | one endpoint with health |
-| PATCH | `/endpoints/{id}` | url, description, event_types, envelope, batch_size, batch_window_seconds, rate_limit_per_minute (null clears), headers, api_version (null clears), metadata |
+| PATCH | `/endpoints/{id}` | url, description, event_types, envelope, batch_size, batch_window_seconds, rate_limit_per_minute (null clears), headers, api_version (null clears), metadata, retry_schedule (null clears, `[]` is one try), timeout_seconds (null clears), follow_redirects, transform (null clears) |
 | DELETE | `/endpoints/{id}` | 204; backlog cancelled |
 | POST | `/endpoints/{id}/pause`, `/resume` | the endpoint |
 | POST | `/endpoints/{id}/rotate-secret` | `overlap_seconds` optional; the new secret, once |
 | POST | `/endpoints/{id}/ping` | synchronous; the `AttemptResult` |
-| POST | `/endpoints/{id}/replay` | `since` required, `until`, `types[]`, `limit`; `{replayed: n}` |
+| POST | `/endpoints/{id}/replay` | `since` (required unless `event_ids[]`), `until`, `types[]`, `event_ids[]` (up to 1000), `only_undelivered`, `per_minute`, `limit`; `{replayed: n}`. With `dry_run: true`, `{replayed: 0, would_replay: n}` and nothing is sent |
 | GET | `/endpoints/{id}/deliveries` | `status`, `type`, `since`, `limit` |
 | GET | `/endpoints/{id}/stats` | `hours` (default 24) |
 | GET | `/deliveries` | the caller's deliveries, a page at a time: `endpoint_id`, `event_id`, `status`, `type`, `since`, `until`, `limit`, `cursor` |
@@ -52,7 +52,8 @@ string to send back as `cursor` for the next page, or `null` on the last one (se
 [Deliveries, attempts and events](history.md)). An id from another scope is `404 {"error":
 "not_found"}`. Invalid input is `422 {"error": "validation", "errors": {field: [...]}}`,
 including a URL the SSRF guard refuses, an unknown event type, a reserved header, a batch
-size out of bounds.
+size, a retry schedule or a timeout out of bounds, or a transform the bound transformer
+refuses. Header values come back masked (`"Bearer…"`): they are write-only.
 
 ## Registering
 
@@ -66,6 +67,9 @@ POST /v1/webhooks/endpoints
   "description": "ERP sync",
   "headers": {"Authorization": "Bearer …"},
   "rate_limit_per_minute": 120,
+  "retry_schedule": [10, 60, 300],
+  "timeout_seconds": 5,
+  "follow_redirects": false,
   "batch_size": 1,
   "api_version": "2026-10-01"
 }

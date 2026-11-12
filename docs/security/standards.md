@@ -21,7 +21,9 @@ weight: 64
 
 Deliberate deviations:
 
-- Redirects (3xx) are not followed, whatever the method, because the target of a
-  redirect was never validated.
+- Redirects are not followed unless the endpoint opts in, and then only 307 and 308
+  (which keep the method and body, RFC 9110 section 15.4), at most three hops, each hop
+  validated and pinned like the first URL. 301, 302 and 303 are never followed: clients
+  turn them into a GET in practice.
 - A 408 counts as a receiver failure; the receiver closed the request on its side.
 - Batches have no per-item acknowledgement; the whole response applies to every item.

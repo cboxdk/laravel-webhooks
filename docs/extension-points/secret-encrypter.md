@@ -7,7 +7,8 @@ weight: 60
 # Secret encryption key
 
 An endpoint's signing secret (and the previous one, during a rotation overlap) is
-encrypted before it is stored. By default that is Laravel's encrypter with `APP_KEY`.
+encrypted before it is stored, and so are the values of the endpoint's own headers
+(stored with a `sealed:` mark in front). By default that is Laravel's encrypter with `APP_KEY`.
 
 To keep the secrets under another key (one per environment, one you can rotate apart
 from `APP_KEY`, one held by a KMS), bind `Cbox\Webhooks\Contracts\SecretEncrypter`:
