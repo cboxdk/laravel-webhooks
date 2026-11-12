@@ -102,4 +102,4 @@ See [SECURITY.md](SECURITY.md) and [docs/security](docs/security/_index.md).
 
 ## License
 
-Proprietary. See [LICENSE.md](LICENSE.md).
+MIT. See [LICENSE.md](LICENSE.md).
