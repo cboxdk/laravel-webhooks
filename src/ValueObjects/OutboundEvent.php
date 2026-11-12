@@ -9,7 +9,9 @@ use Carbon\CarbonImmutable;
 /**
  * What a publisher hands the engine. `idempotencyKey`, when set, makes a
  * re-publish within the same scope a no-op, which is what lets a domain-event
- * relay re-run safely after a crash.
+ * relay re-run safely after a crash. `subject`, when set, names the person the
+ * event is about (the host's own id for them, never an address), so their events
+ * can be erased alone through `Contracts\SubjectErasure`.
  */
 final readonly class OutboundEvent
 {
@@ -22,5 +24,6 @@ final readonly class OutboundEvent
         public array $payload,
         public ?string $idempotencyKey = null,
         public ?CarbonImmutable $occurredAt = null,
+        public ?string $subject = null,
     ) {}
 }

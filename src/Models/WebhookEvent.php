@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $scope_key
  * @property string $type
  * @property string|null $idempotency_key
+ * @property string|null $subject
  * @property string|null $dedup_hash
  * @property array<string, mixed> $payload
  * @property CarbonImmutable $occurred_at

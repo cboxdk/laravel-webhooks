@@ -33,6 +33,7 @@ use Cbox\Webhooks\Contracts\Receivers;
 use Cbox\Webhooks\Contracts\RequestProfiles;
 use Cbox\Webhooks\Contracts\RetentionPolicies;
 use Cbox\Webhooks\Contracts\SecretEncrypter;
+use Cbox\Webhooks\Contracts\SubjectErasure;
 use Cbox\Webhooks\Contracts\Sweeper;
 use Cbox\Webhooks\Contracts\Tracing;
 use Cbox\Webhooks\Delivery\ConfigRequestProfiles;
@@ -107,6 +108,7 @@ class WebhooksServiceProvider extends ServiceProvider
         $this->app->bind(RequestProfiles::class, ConfigRequestProfiles::class);
         $this->app->bind(SecretEncrypter::class, ApplicationSecretEncrypter::class);
         $this->app->bind(Erasure::class, DatabaseErasure::class);
+        $this->app->bind(SubjectErasure::class, DatabaseErasure::class);
 
         $this->app->singleton(Metrics::class, function (Application $app): Metrics {
             $configured = $app->make(Config::class)->string('metrics');
