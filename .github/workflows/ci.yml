@@ -80,3 +80,59 @@ jobs:
 
       - name: Tests
         run: vendor/bin/pest --ci
+
+  # The same suite against a real server: row locks, savepoints around the
+  # idempotency index and conditional updates behave as production will.
+  tests-postgres:
+    name: PostgreSQL - P${{ matrix.php }} - L${{ matrix.laravel }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.4'
+            laravel: '12.*'
+            testbench: '^10.0'
+            pest: '^4.0'
+          - php: '8.5'
+            laravel: '13.*'
+            testbench: '^11.0'
+            pest: '^5.0'
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: webhooks
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d webhooks"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      WEBHOOKS_TEST_DB: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: webhooks
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, mbstring, intl, pgsql, pdo_pgsql
+          coverage: none
+
+      - name: Install dependencies for Laravel ${{ matrix.laravel }}
+        run: |
+          composer require --dev "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "pestphp/pest:${{ matrix.pest }}" "pestphp/pest-plugin-laravel:${{ matrix.pest }}" --no-interaction --no-update
+          composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Tests on PostgreSQL
+        run: vendor/bin/pest --ci

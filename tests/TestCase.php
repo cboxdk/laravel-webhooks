@@ -42,11 +42,45 @@ abstract class TestCase extends Orchestra
 
         $config->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         $config->set('database.default', 'testing');
-        $config->set('database.connections.testing', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true]);
+        $config->set('database.connections.testing', $this->databaseConnection());
         $config->set('cache.default', 'array');
         $config->set('queue.default', 'sync');
         $config->set('webhooks.telemetry.enabled', false);
         $config->set('webhooks.retry.jitter', 0);
+    }
+
+    /**
+     * SQLite in memory unless the environment names PostgreSQL. CI runs the
+     * suite on both; locally `WEBHOOKS_TEST_DB=pgsql` with the usual `DB_*`
+     * variables points it at a server.
+     *
+     * @return array<string, mixed>
+     */
+    private function databaseConnection(): array
+    {
+        if (getenv('WEBHOOKS_TEST_DB') !== 'pgsql') {
+            return ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true];
+        }
+
+        return [
+            'driver' => 'pgsql',
+            'host' => $this->environment('DB_HOST', '127.0.0.1'),
+            'port' => $this->environment('DB_PORT', '5432'),
+            'database' => $this->environment('DB_DATABASE', 'webhooks'),
+            'username' => $this->environment('DB_USERNAME', 'postgres'),
+            'password' => $this->environment('DB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+        ];
+    }
+
+    private function environment(string $name, string $default): string
+    {
+        $value = getenv($name);
+
+        return is_string($value) && $value !== '' ? $value : $default;
     }
 
     protected function setUp(): void

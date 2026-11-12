@@ -25,8 +25,16 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   telemetry events, disabled fallback, custom metrics class.
 - The eight commands, the scheduler registration, the fake, the testing trait.
 
-121 tests, 904 assertions, including the architecture test. SQLite in memory; PHPStan level
-max with no ignores; Pint.
+- On PostgreSQL: the fan-out's row lock makes a second publisher wait (a real second
+  connection), and a repeated idempotency key inside a host transaction leaves that
+  transaction usable.
+
+124 tests, 914 assertions, including the architecture test, on SQLite in memory and on
+PostgreSQL 18 (one test needs a second connection and is skipped on SQLite). PHPStan
+level max with no ignores; Pint.
+
+To run the suite on PostgreSQL locally:
+`WEBHOOKS_TEST_DB=pgsql DB_HOST=127.0.0.1 DB_PORT=5432 DB_DATABASE=webhooks DB_USERNAME=postgres DB_PASSWORD=… vendor/bin/pest`.
 
 ## Not built
 
@@ -35,5 +43,5 @@ max with no ignores; Pint.
 - No mTLS, OAuth or IP allow-listing towards receivers.
 - Schemes beyond `cbox` and `standard-webhooks` are not offered by the shipped form
   request; see docs/extension-points/signature-schemes.md.
-- Not yet run against Postgres or MySQL in CI; the row-locking and conditional-update
-  paths are written for them but exercised on SQLite only.
+- Not run against MySQL or MariaDB in CI; the row-locking and conditional-update paths
+  are exercised on SQLite and PostgreSQL only.
