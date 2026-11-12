@@ -8,6 +8,9 @@ What is built, what is tested, what is not. Kept honest; update it with the code
 - Endpoint registry with scope isolation, URL/header/scheme/bounds policy, wide
   endpoints behind `allow_wide_endpoints`, rotation with overlap, scheme change, ping,
   replay, health.
+- Scope matching: the four combinations of an owner endpoint and an event with and
+  without a partition, and the fan-out query against `Scope::matches()` for every shape
+  of scope (owner, partition-wide, global).
 - Delivery: claim race, retry schedule and exhaustion, jitter, 4xx/5xx/timeout/
   connection classification, 410, 429 with `Retry-After` (seconds, HTTP date, cap),
   blocked-URL policy retries, circuit breaker (trip, wait without attempt, single probe,
@@ -29,7 +32,7 @@ What is built, what is tested, what is not. Kept honest; update it with the code
   connection), and a repeated idempotency key inside a host transaction leaves that
   transaction usable.
 
-124 tests, 914 assertions, including the architecture test, on SQLite in memory and on
+130 tests, 935 assertions, including the architecture test, on SQLite in memory and on
 PostgreSQL 18 (one test needs a second connection and is skipped on SQLite). PHPStan
 level max with no ignores; Pint.
 

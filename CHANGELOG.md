@@ -5,6 +5,19 @@ All notable changes to this package are documented here. The format follows
 
 ## [Unreleased]
 
+### Breaking
+
+- **An owner endpoint without a partition no longer receives events published with
+  one.** In 0.1 an endpoint registered in `Scope::of('org_1')` also received events
+  published in `Scope::of('org_1', 'eu')`, against the documented contract (the
+  partition is part of the identity; null means "none", not "any"). In a host where the
+  partition is the tenant, that crossed tenants. `Scope::matches()` had the same hole
+  and is fixed with the query. Nothing changes for a host that uses the same shape on
+  both sides, which is every known consumer. **Migration:** if you registered endpoints
+  without a partition and publish with one, either publish without it or re-register
+  the endpoints in the partitioned scope (`UPDATE webhook_endpoints SET partition = ?`
+  for the rows concerned). Partition-wide and global endpoints are unaffected.
+
 ### Added
 
 - CI runs the whole suite on PostgreSQL 18 beside SQLite. Nothing in the engine had to
