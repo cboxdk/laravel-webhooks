@@ -6,16 +6,20 @@ namespace Cbox\Webhooks\Models;
 
 use Carbon\CarbonImmutable;
 use Cbox\Webhooks\Enums\AttemptOutcome;
+use Cbox\Webhooks\ValueObjects\Scope;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * Every HTTP attempt, kept until pruned: the monitoring truth and what an
- * operator reads when a receiver says "we never got it".
+ * operator reads when a receiver says "we never got it". Each row carries its
+ * delivery's scope, so an owner's attempts are listed and erased by an index.
  *
  * @property string $id
  * @property string $delivery_id
  * @property string $endpoint_id
+ * @property string|null $partition
+ * @property string|null $scope_key
  * @property string|null $batch_id
  * @property int $attempt_number
  * @property CarbonImmutable $started_at
@@ -37,6 +41,11 @@ class WebhookAttempt extends Model
     public const UPDATED_AT = null;
 
     protected $guarded = [];
+
+    public function scope(): Scope
+    {
+        return Scope::fromColumns($this->partition, $this->scope_key);
+    }
 
     /**
      * @return array<string, string>

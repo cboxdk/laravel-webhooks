@@ -6,11 +6,13 @@ namespace Cbox\Webhooks\Endpoints;
 
 use Cbox\Ssrf\Contracts\UrlGuard;
 use Cbox\Ssrf\Exceptions\BlockedUrl;
-use Cbox\Webhooks\Contracts\EventCatalog;
+use Cbox\Webhooks\Contracts\EnvelopeFormats;
+use Cbox\Webhooks\Contracts\EventCatalogs;
 use Cbox\Webhooks\Delivery\Signer;
 use Cbox\Webhooks\Exceptions\InvalidEndpoint;
 use Cbox\Webhooks\Exceptions\UnknownEventType;
 use Cbox\Webhooks\Support\Config;
+use Cbox\Webhooks\ValueObjects\Scope;
 
 /**
  * What an endpoint may look like. Shared by the registry and the management
@@ -29,9 +31,10 @@ final readonly class EndpointPolicy
 
     public function __construct(
         private UrlGuard $guard,
-        private EventCatalog $catalog,
+        private EventCatalogs $catalogs,
         private Signer $signer,
         private Config $config,
+        private EnvelopeFormats $envelopes,
     ) {}
 
     /**
@@ -55,12 +58,14 @@ final readonly class EndpointPolicy
     }
 
     /**
+     * Every subscription must expand to a type the endpoint's own scope offers.
+     *
      * @param  list<string>  $eventTypes
      *
      * @throws InvalidEndpoint
      * @throws UnknownEventType
      */
-    public function assertEventTypes(array $eventTypes): void
+    public function assertEventTypes(array $eventTypes, Scope $scope): void
     {
         $types = array_values(array_filter($eventTypes, static fn (string $t): bool => trim($t) !== ''));
 
@@ -68,7 +73,7 @@ final readonly class EndpointPolicy
             throw InvalidEndpoint::noEventTypes();
         }
 
-        $this->catalog->expand($types);
+        $this->catalogs->for($scope)->expand($types);
     }
 
     /**
@@ -98,6 +103,22 @@ final readonly class EndpointPolicy
         if (! $this->signer->canSign($scheme)) {
             throw InvalidEndpoint::schemeCannotSign($scheme);
         }
+    }
+
+    /**
+     * @throws InvalidEndpoint when no envelope format has that name
+     */
+    public function assertEnvelope(string $name): void
+    {
+        $this->envelopes->get($name);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function envelopeNames(): array
+    {
+        return $this->envelopes->names();
     }
 
     /**

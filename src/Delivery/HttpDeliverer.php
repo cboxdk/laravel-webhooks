@@ -6,7 +6,10 @@ namespace Cbox\Webhooks\Delivery;
 
 use Carbon\CarbonImmutable;
 use Cbox\Webhooks\Contracts\Deliverer;
+use Cbox\Webhooks\Contracts\EnvelopeFormats;
+use Cbox\Webhooks\Contracts\RequestProfiles;
 use Cbox\Webhooks\Contracts\Tracing;
+use Cbox\Webhooks\Endpoints\EndpointMapper;
 use Cbox\Webhooks\Enums\AttemptOutcome;
 use Cbox\Webhooks\Enums\DeliveryStatus;
 use Cbox\Webhooks\Enums\EndpointStatus;
@@ -14,10 +17,12 @@ use Cbox\Webhooks\Enums\SpanKind;
 use Cbox\Webhooks\Models\WebhookDelivery;
 use Cbox\Webhooks\Models\WebhookEndpoint;
 use Cbox\Webhooks\Models\WebhookEvent;
+use Cbox\Webhooks\Monitoring\ScopeAttributes;
 use Cbox\Webhooks\Monitoring\SpanContext;
 use Cbox\Webhooks\Support\Json;
 use Cbox\Webhooks\Support\Models;
 use Cbox\Webhooks\ValueObjects\AttemptResult;
+use Cbox\Webhooks\ValueObjects\EncodedEnvelope;
 use Cbox\WebhookSignature\Contracts\Clock;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -34,6 +39,12 @@ use Illuminate\Database\Eloquent\Builder;
  * breaker, a full rate-limit window) hand the attempt number back, because they
  * are this side's decisions and must not spend the delivery's retry budget.
  * Everything that reaches the transport spends one.
+ *
+ * The body comes from the endpoint's envelope format as final bytes. Those
+ * bytes are signed and those bytes are sent; nothing re-encodes them. A format
+ * name that is no longer registered is a deployment error and throws before
+ * anything is admitted, so the job fails loudly, the row stays claimed, and
+ * the sweep's stranded rescue retries it once the format is back.
  */
 final readonly class HttpDeliverer implements Deliverer
 {
@@ -46,6 +57,10 @@ final readonly class HttpDeliverer implements Deliverer
         private Settlement $settlement,
         private Tracing $tracing,
         private Clock $clock,
+        private EnvelopeFormats $envelopes,
+        private RequestProfiles $profiles,
+        private EndpointMapper $mapper,
+        private ScopeAttributes $scopeAttributes,
     ) {}
 
     public function deliver(string $deliveryId, int $expectedAttempt): ?AttemptResult
@@ -69,10 +84,11 @@ final readonly class HttpDeliverer implements Deliverer
         }
 
         $endpoint = $this->endpoints()->find($delivery->endpoint_id);
+        $format = $endpoint === null ? null : $this->envelopes->get($endpoint->envelope);
 
         $admission = $this->admit([$delivery], $endpoint, $now);
 
-        if ($admission->refusal !== null || $endpoint === null) {
+        if ($admission->refusal !== null || $endpoint === null || $format === null) {
             return $admission->refusal;
         }
 
@@ -82,9 +98,9 @@ final readonly class HttpDeliverer implements Deliverer
             return $this->settlement->exhaust([$delivery], $endpoint, 'event_pruned');
         }
 
-        $body = Json::encode(Envelope::single($delivery, $event, $endpoint));
+        $envelope = $format->single(Envelope::item($delivery, $event, $endpoint));
 
-        $result = $this->send($endpoint, $delivery->id, $delivery->type, (string) $delivery->sequence, $delivery->attempt, $body);
+        $result = $this->send($endpoint, $delivery->id, $delivery->type, (string) $delivery->sequence, $delivery->attempt, $envelope);
 
         return $this->settlement->settle([$delivery], $endpoint, $result, null, $admission->probing);
     }
@@ -105,10 +121,11 @@ final readonly class HttpDeliverer implements Deliverer
         }
 
         $endpoint = $this->endpoints()->find($deliveries[0]->endpoint_id);
+        $format = $endpoint === null ? null : $this->envelopes->get($endpoint->envelope);
 
         $admission = $this->admit($deliveries, $endpoint, $now);
 
-        if ($admission->refusal !== null || $endpoint === null) {
+        if ($admission->refusal !== null || $endpoint === null || $format === null) {
             return $admission->refusal;
         }
 
@@ -122,7 +139,7 @@ final readonly class HttpDeliverer implements Deliverer
             $event = $events->get($delivery->event_id);
 
             if ($event instanceof WebhookEvent) {
-                $items[] = Envelope::single($delivery, $event, $endpoint);
+                $items[] = Envelope::item($delivery, $event, $endpoint);
                 $kept[] = $delivery;
             } else {
                 $pruned[] = $delivery;
@@ -133,16 +150,16 @@ final readonly class HttpDeliverer implements Deliverer
             $this->settlement->exhaust($pruned, $endpoint, 'event_pruned');
         }
 
-        if ($kept === []) {
+        if ($kept === [] || $items === []) {
             return null;
         }
 
-        $body = Json::encode(Envelope::batch($batchId, $items));
+        $envelope = $format->batch($batchId, $items);
         $first = $kept[0];
         $last = $kept[count($kept) - 1];
         $attempt = $this->highestAttempt($kept);
 
-        $result = $this->send($endpoint, $batchId, 'batch', $first->sequence.'-'.$last->sequence, $attempt, $body);
+        $result = $this->send($endpoint, $batchId, 'batch', $first->sequence.'-'.$last->sequence, $attempt, $envelope);
 
         return $this->settlement->settle($kept, $endpoint, $result, $batchId, $admission->probing);
     }
@@ -192,11 +209,16 @@ final readonly class HttpDeliverer implements Deliverer
      * a receiver using that package in the same process (a host's test suite,
      * typically with Carbon frozen) verifies what this side signed.
      */
-    private function send(WebhookEndpoint $endpoint, string $messageId, string $type, string $sequence, int $attempt, string $body): TransportResult
+    private function send(WebhookEndpoint $endpoint, string $messageId, string $type, string $sequence, int $attempt, EncodedEnvelope $envelope): TransportResult
     {
+        $body = $envelope->body;
         $timestamp = $this->clock->now();
+        $profile = $this->profiles->for($this->mapper->endpoint($endpoint));
 
+        // Later entries win: the host's fixed headers, then the endpoint's own,
+        // then everything the signature and the transport depend on.
         $headers = [
+            ...$profile->headers,
             ...Json::stringMap($endpoint->headers),
             ...$this->signer->headers($endpoint->signature_scheme, $endpoint->secret, $body, $messageId, $timestamp),
             'X-Webhook-Event' => $type,
@@ -213,10 +235,11 @@ final readonly class HttpDeliverer implements Deliverer
             'webhook.delivery_id' => $messageId,
             'webhook.attempt' => $attempt,
             'server.address' => (string) parse_url($endpoint->url, PHP_URL_HOST),
+            ...$this->scopeAttributes->for($endpoint->scope()),
         ];
 
-        return $this->tracing->span('webhooks.deliver', SpanKind::Client, $attributes, function (SpanContext $span) use ($endpoint, $body, $headers): TransportResult {
-            $result = $this->transport->send($endpoint->url, $body, $headers);
+        return $this->tracing->span('webhooks.deliver', SpanKind::Client, $attributes, function (SpanContext $span) use ($endpoint, $envelope, $headers, $profile): TransportResult {
+            $result = $this->transport->send($endpoint->url, $envelope->body, $headers, $envelope->contentType, $profile->userAgent);
 
             $span->set('webhook.outcome', $result->outcome->value);
 

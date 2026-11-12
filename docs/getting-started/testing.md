@@ -76,7 +76,9 @@ future" for a receiver in the same process; if a test needs the signature timest
 follow the frozen time as well, bind a `Clock` that reads `CarbonImmutable::now()`.
 
 Other helpers: `defineWebhookEvent($type, $group)` registers a catalog entry for the
-test; `fakeDnsForUrl($url)` fakes DNS for a URL you register some other way.
+test; `fakeEventCatalogs()` gives every scope its own catalog (see
+[A catalog per scope](../extension-points/event-catalogs.md)); `fakeDnsForUrl($url)`
+fakes DNS for a URL you register some other way.
 
 ## Testing a receiver
 

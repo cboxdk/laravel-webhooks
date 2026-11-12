@@ -6,7 +6,7 @@ namespace Cbox\Webhooks\Publishing;
 
 use Carbon\CarbonImmutable;
 use Cbox\Webhooks\Contracts\Endpoints;
-use Cbox\Webhooks\Contracts\EventCatalog;
+use Cbox\Webhooks\Contracts\EventCatalogs;
 use Cbox\Webhooks\Contracts\Metrics;
 use Cbox\Webhooks\Contracts\Publisher;
 use Cbox\Webhooks\Contracts\Tracing;
@@ -21,6 +21,7 @@ use Cbox\Webhooks\Exceptions\PayloadTooLarge;
 use Cbox\Webhooks\Exceptions\UnknownEventType;
 use Cbox\Webhooks\Models\WebhookEndpoint;
 use Cbox\Webhooks\Models\WebhookEvent;
+use Cbox\Webhooks\Monitoring\ScopeAttributes;
 use Cbox\Webhooks\Monitoring\SpanContext;
 use Cbox\Webhooks\Support\Config;
 use Cbox\Webhooks\Support\Json;
@@ -53,7 +54,7 @@ final readonly class DatabasePublisher implements Publisher
     public function __construct(
         private Models $models,
         private Config $config,
-        private EventCatalog $catalog,
+        private EventCatalogs $catalogs,
         private Endpoints $endpoints,
         private JobDispatcher $jobs,
         private ConnectionResolverInterface $db,
@@ -61,6 +62,7 @@ final readonly class DatabasePublisher implements Publisher
         private Metrics $metrics,
         private Tracing $tracing,
         private LoggerInterface $log,
+        private ScopeAttributes $scopeAttributes,
     ) {}
 
     public function publish(OutboundEvent $event): PublishedEvent
@@ -89,7 +91,7 @@ final readonly class DatabasePublisher implements Publisher
 
     private function record(OutboundEvent $event): PublishedEvent
     {
-        return $this->tracing->span('webhooks.publish', SpanKind::Internal, ['webhook.type' => $event->type], function (SpanContext $span) use ($event): PublishedEvent {
+        return $this->tracing->span('webhooks.publish', SpanKind::Internal, ['webhook.type' => $event->type, ...$this->scopeAttributes->for($event->scope)], function (SpanContext $span) use ($event): PublishedEvent {
             $stored = $this->store($event);
 
             if ($stored === null) {
@@ -129,7 +131,9 @@ final readonly class DatabasePublisher implements Publisher
             'idempotency_key' => $event->idempotencyKey,
             'dedup_hash' => $this->dedupHash($event->scope, $event->idempotencyKey),
             'payload' => $event->payload,
-            'occurred_at' => $event->occurredAt ?? $now,
+            // In the application's timezone: the column holds a wall-clock time, so an
+            // instant given in another zone would otherwise be stored shifted.
+            'occurred_at' => $event->occurredAt?->setTimezone($now->getTimezone()) ?? $now,
             'created_at' => $now,
         ]);
 
@@ -224,9 +228,12 @@ final readonly class DatabasePublisher implements Publisher
 
     private function validate(OutboundEvent $event): void
     {
-        if (! $this->catalog->has($event->type)) {
+        // The catalog of the event's own scope: a type another scope offers is unknown here.
+        $catalog = $this->catalogs->for($event->scope);
+
+        if (! $catalog->has($event->type)) {
             if ($this->config->bool('catalog.strict', true)) {
-                throw UnknownEventType::forType($event->type, array_map(static fn ($d): string => $d->type, $this->catalog->all()));
+                throw UnknownEventType::forType($event->type, array_map(static fn ($d): string => $d->type, $catalog->all()));
             }
 
             $this->log->warning('Publishing a webhook event type the catalog does not know.', ['type' => $event->type]);

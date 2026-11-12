@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Cbox\Webhooks\Contracts;
 
+use Cbox\Webhooks\Exceptions\InvalidCursor;
 use Cbox\Webhooks\ValueObjects\Delivery;
 use Cbox\Webhooks\ValueObjects\DeliveryFilter;
+use Cbox\Webhooks\ValueObjects\Page;
 use Cbox\Webhooks\ValueObjects\Scope;
 
 /**
@@ -16,8 +18,23 @@ interface Deliveries
     /** With its attempts. */
     public function find(Scope $scope, string $id): ?Delivery;
 
-    /** @return list<Delivery> */
+    /**
+     * The newest `$filter->limit` deliveries (at most 1000) and no way to get the
+     * rest: use {@see paginate()} for anything a caller scrolls through.
+     *
+     * @return list<Delivery>
+     */
     public function list(Scope $scope, DeliveryFilter $filter): array;
+
+    /**
+     * Newest first by `created_at`, `$filter->limit` per page. Pass the page's
+     * `nextCursor` back, with the same scope and filter, for the next page.
+     *
+     * @return Page<Delivery>
+     *
+     * @throws InvalidCursor
+     */
+    public function paginate(Scope $scope, DeliveryFilter $filter, ?string $cursor = null): Page;
 
     /**
      * Queue a failed or exhausted delivery for another attempt now. False when

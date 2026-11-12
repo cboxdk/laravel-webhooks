@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Cbox\Webhooks\Http;
 
 use Cbox\Webhooks\Contracts\ScopeResolver;
+use Cbox\Webhooks\Http\Controllers\AttemptsController;
 use Cbox\Webhooks\Http\Controllers\CatalogController;
 use Cbox\Webhooks\Http\Controllers\DeliveriesController;
 use Cbox\Webhooks\Http\Controllers\EndpointActionsController;
 use Cbox\Webhooks\Http\Controllers\EndpointsController;
+use Cbox\Webhooks\Http\Controllers\EventsController;
 use Illuminate\Routing\Router;
 
 /**
@@ -53,8 +55,14 @@ final class Routes
             $router->get('endpoints/{id}/deliveries', [EndpointActionsController::class, 'deliveries'])->name('endpoints.deliveries');
             $router->get('endpoints/{id}/stats', [EndpointActionsController::class, 'stats'])->name('endpoints.stats');
 
+            $router->get('deliveries', [DeliveriesController::class, 'index'])->name('deliveries.index');
             $router->get('deliveries/{id}', [DeliveriesController::class, 'show'])->name('deliveries.show');
             $router->post('deliveries/{id}/retry', [DeliveriesController::class, 'retry'])->name('deliveries.retry');
+
+            $router->get('attempts', [AttemptsController::class, 'index'])->name('attempts.index');
+
+            $router->get('events', [EventsController::class, 'index'])->name('events.index');
+            $router->get('events/{id}', [EventsController::class, 'show'])->name('events.show');
         });
     }
 }

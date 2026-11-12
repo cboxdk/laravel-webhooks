@@ -32,7 +32,7 @@ caller's scope from the authenticated request. Without one every request throws
 | GET | `/endpoints` | the caller's endpoints |
 | POST | `/endpoints` | register; 201 with the secret, once |
 | GET | `/endpoints/{id}` | one endpoint with health |
-| PATCH | `/endpoints/{id}` | url, description, event_types, batch_size, batch_window_seconds, rate_limit_per_minute (null clears), headers, api_version (null clears), metadata |
+| PATCH | `/endpoints/{id}` | url, description, event_types, envelope, batch_size, batch_window_seconds, rate_limit_per_minute (null clears), headers, api_version (null clears), metadata |
 | DELETE | `/endpoints/{id}` | 204; backlog cancelled |
 | POST | `/endpoints/{id}/pause`, `/resume` | the endpoint |
 | POST | `/endpoints/{id}/rotate-secret` | `overlap_seconds` optional; the new secret, once |
@@ -40,10 +40,16 @@ caller's scope from the authenticated request. Without one every request throws
 | POST | `/endpoints/{id}/replay` | `since` required, `until`, `types[]`, `limit`; `{replayed: n}` |
 | GET | `/endpoints/{id}/deliveries` | `status`, `type`, `since`, `limit` |
 | GET | `/endpoints/{id}/stats` | `hours` (default 24) |
+| GET | `/deliveries` | the caller's deliveries, a page at a time: `endpoint_id`, `event_id`, `status`, `type`, `since`, `until`, `limit`, `cursor` |
 | GET | `/deliveries/{id}` | a delivery with its attempts |
 | POST | `/deliveries/{id}/retry` | 202 `{queued: true}`; 422 unless failed or exhausted |
+| GET | `/attempts` | the caller's HTTP attempts: `endpoint_id`, `delivery_id`, `outcome`, `since`, `until`, `limit`, `cursor` |
+| GET | `/events` | the caller's recorded events: `type`, `since`, `until`, `limit`, `cursor` |
+| GET | `/events/{id}` | one event with its payload |
 
-Every response is `{"data": …}`. An id from another scope is `404 {"error":
+Every response is `{"data": …}`. The three paginated listings add `"next_cursor"`: a
+string to send back as `cursor` for the next page, or `null` on the last one (see
+[Deliveries, attempts and events](history.md)). An id from another scope is `404 {"error":
 "not_found"}`. Invalid input is `422 {"error": "validation", "errors": {field: [...]}}`,
 including a URL the SSRF guard refuses, an unknown event type, a reserved header, a batch
 size out of bounds.
@@ -56,6 +62,7 @@ POST /v1/webhooks/endpoints
   "url": "https://customer.example/hooks",
   "event_types": ["invoice.*"],
   "scheme": "standard-webhooks",
+  "envelope": "cbox",
   "description": "ERP sync",
   "headers": {"Authorization": "Bearer …"},
   "rate_limit_per_minute": 120,

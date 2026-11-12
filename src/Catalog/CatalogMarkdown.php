@@ -15,11 +15,12 @@ final readonly class CatalogMarkdown
 {
     public function __construct(private EventCatalog $catalog) {}
 
-    public function render(): string
+    /** The shared catalog, or the one given (a scope's, from `Contracts\EventCatalogs`). */
+    public function render(?EventCatalog $catalog = null): string
     {
         $groups = [];
 
-        foreach ($this->catalog->all() as $definition) {
+        foreach (($catalog ?? $this->catalog)->all() as $definition) {
             $groups[$definition->group][] = $definition;
         }
 

@@ -54,6 +54,7 @@ final class DeliveryMapper
             error: $model->error,
             requestId: $model->request_id,
             batchId: $model->batch_id,
+            scope: $model->scope(),
         );
     }
 }

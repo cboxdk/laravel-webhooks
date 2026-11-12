@@ -1,6 +1,6 @@
 ---
 title: Extension points
-description: Replace a contract, subclass a model, bind the scope resolver, plug in metrics, add a signature scheme.
+description: Replace a contract, subclass a model, bind the scope resolver, plug in metrics, add a signature scheme, give each scope its own catalog and its own retention.
 weight: 50
 ---
 
@@ -11,3 +11,8 @@ weight: 50
 - [Scope resolver](scope-resolver.md) — the caller's scope for the management API
 - [Metrics](metrics.md) — your own metrics backend
 - [Signature schemes](signature-schemes.md) — schemes beyond `cbox` and `standard-webhooks`
+- [A catalog per scope](event-catalogs.md) — each customer of a multi-tenant host with its own event types
+- [Retention per scope](retention.md) — how long each owner's history is kept
+- [Envelope formats](envelope-formats.md) — your own wire format, chosen per endpoint
+- [User agent and fixed headers](request-profiles.md) — per endpoint or scope
+- [Secret encryption key](secret-encrypter.md) — keep signing secrets under a key other than `APP_KEY`

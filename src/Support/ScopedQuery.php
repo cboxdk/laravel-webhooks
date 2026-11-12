@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  * columns match, nulls included, so an id learned from another scope is a
  * 404 rather than a leak. `receiving()` is the fan-out view: the endpoints
  * whose scope covers an event's scope, which is the exact owner plus the
- * partition-wide and global rows.
+ * partition-wide rows of the event's partition and the global rows.
  */
 final class ScopedQuery
 {
@@ -33,6 +33,13 @@ final class ScopedQuery
     }
 
     /**
+     * The SQL form of {@see Scope::matches()}; a test holds the two together.
+     *
+     * An owner row (it has a key) receives only its exact scope: the partition
+     * is part of the identity, so a row with no partition does not receive an
+     * event that has one, and the other way round. A wide row (no key) receives
+     * its own partition, or everything when it has no partition either.
+     *
      * @template TModel of Model
      *
      * @param  Builder<TModel>  $query
@@ -40,20 +47,26 @@ final class ScopedQuery
      */
     public static function receiving(Builder $query, Scope $event): Builder
     {
-        return $query
-            ->where(function (Builder $q) use ($event): void {
-                $q->whereNull('partition');
+        return $query->where(function (Builder $q) use ($event): void {
+            $q->where(function (Builder $wide) use ($event): void {
+                $wide->whereNull('scope_key')->where(function (Builder $partition) use ($event): void {
+                    $partition->whereNull('partition');
 
-                if ($event->partition !== null) {
-                    $q->orWhere('partition', $event->partition);
-                }
-            })
-            ->where(function (Builder $q) use ($event): void {
-                $q->whereNull('scope_key');
-
-                if ($event->key !== null) {
-                    $q->orWhere('scope_key', $event->key);
-                }
+                    if ($event->partition !== null) {
+                        $partition->orWhere('partition', $event->partition);
+                    }
+                });
             });
+
+            if ($event->key !== null) {
+                $q->orWhere(function (Builder $owner) use ($event): void {
+                    $owner->where('scope_key', $event->key);
+
+                    $event->partition === null
+                        ? $owner->whereNull('partition')
+                        : $owner->where('partition', $event->partition);
+                });
+            }
+        });
     }
 }

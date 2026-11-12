@@ -8,8 +8,10 @@ use Cbox\Ssrf\Testing\InteractsWithSsrf;
 use Cbox\Webhooks\Catalog\EventDefinition;
 use Cbox\Webhooks\Contracts\Endpoints;
 use Cbox\Webhooks\Contracts\EventCatalog;
+use Cbox\Webhooks\Contracts\EventCatalogs;
 use Cbox\Webhooks\Contracts\Publisher;
 use Cbox\Webhooks\Contracts\Receivers;
+use Cbox\Webhooks\Contracts\RetentionPolicies;
 use Cbox\Webhooks\Contracts\Sweeper;
 use Cbox\Webhooks\Delivery\Envelope;
 use Cbox\Webhooks\Events\WebhookProcessed;
@@ -79,6 +81,7 @@ trait InteractsWithWebhooks
         ?int $rateLimitPerMinute = null,
         array $headers = [],
         ?string $apiVersion = null,
+        string $envelope = 'cbox',
     ): RegisteredEndpoint {
         $this->fakeDnsForUrl($url);
 
@@ -91,6 +94,7 @@ trait InteractsWithWebhooks
             rateLimitPerMinute: $rateLimitPerMinute,
             headers: $headers,
             apiVersion: $apiVersion,
+            envelope: $envelope,
         );
 
         return Container::getInstance()->make(Endpoints::class)->register($scope, $spec);
@@ -118,7 +122,31 @@ trait InteractsWithWebhooks
         return Container::getInstance()->make(Sweeper::class)->sweep();
     }
 
-    /** Register an event type in the catalog for this test. */
+    /**
+     * Give every scope its own catalog, the way a multi-tenant host does, and
+     * hand the fake back to define each scope's types on. A scope with nothing
+     * defined offers nothing.
+     */
+    protected function fakeEventCatalogs(): FakeEventCatalogs
+    {
+        $fake = new FakeEventCatalogs;
+
+        Container::getInstance()->instance(EventCatalogs::class, $fake);
+
+        return $fake;
+    }
+
+    /** Retention per scope for this test; a scope nothing is set for keeps the configured default. */
+    protected function fakeRetentionPolicies(): FakeRetentionPolicies
+    {
+        $fake = new FakeRetentionPolicies;
+
+        Container::getInstance()->instance(RetentionPolicies::class, $fake);
+
+        return $fake;
+    }
+
+    /** Register an event type in the shared catalog for this test. */
     protected function defineWebhookEvent(string $type, string $group = 'test', string $label = '', string $description = ''): void
     {
         Container::getInstance()->make(EventCatalog::class)->register(

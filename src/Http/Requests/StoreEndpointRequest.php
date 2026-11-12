@@ -9,6 +9,7 @@ use Cbox\Webhooks\Endpoints\EndpointPolicy;
 use Cbox\Webhooks\Http\Requests\Rules\CatalogEventTypes;
 use Cbox\Webhooks\Http\Requests\Rules\NoReservedHeaders;
 use Cbox\Webhooks\ValueObjects\NewEndpoint;
+use Illuminate\Validation\Rule;
 
 final class StoreEndpointRequest extends WebhooksFormRequest
 {
@@ -21,9 +22,10 @@ final class StoreEndpointRequest extends WebhooksFormRequest
 
         return [
             'url' => ['required', 'string', 'max:2048', new PublicUrl($policy->allowedSchemes())],
-            'event_types' => ['required', 'array', 'min:1', $this->container->make(CatalogEventTypes::class)],
+            'event_types' => ['required', 'array', 'min:1', new CatalogEventTypes($this->catalog())],
             'event_types.*' => ['string', 'max:128'],
             'scheme' => ['sometimes', 'string', 'in:cbox,standard-webhooks'],
+            'envelope' => ['sometimes', 'string', Rule::in($policy->envelopeNames())],
             'description' => ['nullable', 'string', 'max:255'],
             'batch_size' => ['sometimes', 'integer', 'min:1', 'max:'.$policy->maxBatchSize()],
             'batch_window_seconds' => ['sometimes', 'integer', 'min:0', 'max:'.$policy->maxBatchWindow()],
@@ -48,6 +50,7 @@ final class StoreEndpointRequest extends WebhooksFormRequest
             headers: $this->stringMap('headers'),
             apiVersion: $this->optionalString('api_version'),
             metadata: $this->map('metadata'),
+            envelope: $this->optionalString('envelope') ?? 'cbox',
         );
     }
 }

@@ -41,6 +41,7 @@ readonly class Endpoint
         public array $metadata = [],
         public ?CarbonImmutable $createdAt = null,
         public ?CarbonImmutable $updatedAt = null,
+        public string $envelope = 'cbox',
     ) {}
 
     public function isBatching(): bool
@@ -60,6 +61,7 @@ readonly class Endpoint
             'description' => $this->description,
             'event_types' => $this->eventTypes,
             'signature_scheme' => $this->scheme,
+            'envelope' => $this->envelope,
             'status' => $this->status->value,
             'disabled_reason' => $this->disabledReason?->value,
             'disabled_at' => $this->disabledAt?->toIso8601String(),

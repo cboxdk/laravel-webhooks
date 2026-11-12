@@ -14,7 +14,8 @@ you. Every request is a row you can show to support.
   Another scope's id answers `null`. Wide endpoints exist only when the operator opts in.
 - **Receivers are attacker input.** URLs pass `cboxdk/laravel-ssrf` at registration
   and are pinned again right before each send; redirects are never followed; reserved
-  headers are refused; secrets are encrypted at rest and shown once.
+  headers are refused; secrets are encrypted at rest (under `APP_KEY` or a key you
+  choose) and shown once.
 - **Signed by `cboxdk/laravel-webhook-signature`**: `cbox` or `standard-webhooks`,
   fresh timestamp per attempt, rotation with an overlap.
 - **Observable.** Seventeen typed Laravel events, a `Monitor` with the numbers a health
@@ -102,4 +103,4 @@ See [SECURITY.md](SECURITY.md) and [docs/security](docs/security/_index.md).
 
 ## License
 
-Proprietary. See [LICENSE.md](LICENSE.md).
+MIT. See [LICENSE.md](LICENSE.md).

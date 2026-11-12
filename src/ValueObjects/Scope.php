@@ -11,9 +11,9 @@ use Cbox\Webhooks\Exceptions\InvalidScope;
  * owning the host's tenancy.
  *
  * `partition` is the host's hard tenant boundary (an environment, a plane); `key`
- * is the owner inside it (an organization, a source). An endpoint whose key is
- * null receives every owner's events inside its partition; one with both null
- * receives everything. Those two shapes are reachable only through the named
+ * is the owner inside it (an organization, a source). An endpoint with a key
+ * receives exactly its own scope's events. One whose key is null receives every
+ * owner's events inside its partition; one with both null receives everything. Those two shapes are reachable only through the named
  * constructors, so a null that arrived from a variable cannot widen a scope by
  * accident: `Scope::of()` refuses an empty key outright.
  */
@@ -69,13 +69,19 @@ final readonly class Scope
     }
 
     /**
-     * Whether an endpoint in this scope receives an event in `$event`'s scope:
-     * each of partition and key is either unconstrained here or equal.
+     * Whether an endpoint in this scope receives an event in `$event`'s scope.
+     *
+     * An owner scope (it has a key) matches only itself: the partition is part
+     * of the identity and null means "none", never "any". A wide scope matches
+     * every key in its partition, and the global one matches everything.
      */
     public function matches(self $event): bool
     {
-        return ($this->partition === null || $this->partition === $event->partition)
-            && ($this->key === null || $this->key === $event->key);
+        if ($this->key !== null) {
+            return $this->equals($event);
+        }
+
+        return $this->partition === null || $this->partition === $event->partition;
     }
 
     public function equals(self $other): bool

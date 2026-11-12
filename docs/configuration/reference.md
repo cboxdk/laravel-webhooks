@@ -12,6 +12,7 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 
 | Key | Default | Changes |
 | --- | --- | --- |
+| `connection` | `null` | the database connection the tables live on, migrations included; null is the default connection |
 | `table_prefix` | `webhook_` | every table name |
 | `run_migrations` | `true` | off: publish and run them yourself |
 | `models.endpoint`, `.event`, `.delivery`, `.attempt`, `.inbound` | the shipped classes | subclasses; must extend the shipped model |
@@ -38,6 +39,13 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 | `http.connect_timeout` | `5` | seconds |
 | `http.timeout` | `10` | seconds |
 | `http.user_agent` | `null` | replaces `Cbox-Webhooks/1.0 (+…)` |
+| `http.headers` | `[]` | sent on every request; an endpoint's own headers win. Per endpoint: [`RequestProfiles`](../extension-points/request-profiles.md) |
+
+## Envelopes
+
+| Key | Default | Changes |
+| --- | --- | --- |
+| `cloudevents.source` | `null` | the CloudEvents `source` of the `cloudevents` envelope; null uses `app.url` |
 
 ## Retries and the breaker
 
@@ -56,6 +64,7 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 | --- | --- | --- |
 | `stranded_after_seconds` | `900` | pending/in-flight older than this is rescued; also the unique-job window |
 | `sweep_limit` | `200` | rows re-queued per sweep |
+| `sweep_fairness` | `none` | `scope` or `partition`: spend the limit round-robin over owners instead of oldest first. See [the sweep](../core-concepts/delivery-lifecycle.md#who-gets-the-tick) |
 | `batch.max_size` | `100` | upper bound for an endpoint's `batch_size` |
 | `batch.max_window_seconds` | `300` | upper bound for `batch_window_seconds` |
 
@@ -69,6 +78,9 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 | `retention.failed_days` | `90` | exhausted and cancelled deliveries and attempts |
 | `retention.events_days` | `30` | events; the replay horizon |
 | `retention.inbound_days` | `30` | the inbound ledger |
+
+The three scoped windows are the defaults; bind
+[`RetentionPolicies`](../extension-points/retention.md) to answer per scope.
 
 ## Receiving
 
@@ -84,3 +96,4 @@ Publish with `php artisan vendor:publish --tag=webhooks-config`.
 | --- | --- | --- |
 | `metrics` | `null` | a class implementing `Contracts\Metrics`; wins over telemetry |
 | `telemetry.enabled` | `true` | use the adapters when `cboxdk/laravel-telemetry` is installed |
+| `telemetry.scope_attributes` | `false` | add `webhook.scope.partition` and `webhook.scope.key` to the publish and deliver spans; never to a metric |

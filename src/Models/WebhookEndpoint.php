@@ -6,6 +6,7 @@ namespace Cbox\Webhooks\Models;
 
 use Carbon\CarbonImmutable;
 use Cbox\Webhooks\Enums\EndpointStatus;
+use Cbox\Webhooks\Models\Casts\EncryptedSecret;
 use Cbox\Webhooks\ValueObjects\Scope;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +17,8 @@ use Illuminate\Database\Eloquent\Model;
  * self-healing after a success. The two are kept apart so a transient outage
  * never changes what the owner asked for.
  *
- * The signing secret is stored under Laravel's encrypter. The previous secret
+ * The signing secret is stored through the bound `Contracts\SecretEncrypter`
+ * (Laravel's encrypter and `APP_KEY` unless the host binds its own). The previous secret
  * stays beside it for the rotation overlap so the receiver's secret set can
  * accept both; the deliverer always signs with the current one.
  *
@@ -27,6 +29,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $description
  * @property array<int, mixed> $event_types
  * @property string $signature_scheme
+ * @property string $envelope
  * @property string $secret
  * @property string|null $previous_secret
  * @property CarbonImmutable|null $previous_secret_expires_at
@@ -68,6 +71,7 @@ class WebhookEndpoint extends Model
      */
     protected $attributes = [
         'signature_scheme' => 'cbox',
+        'envelope' => 'cbox',
         'status' => 'active',
         'batch_size' => 1,
         'batch_window_seconds' => 0,
@@ -93,8 +97,8 @@ class WebhookEndpoint extends Model
     {
         return [
             'event_types' => 'array',
-            'secret' => 'encrypted',
-            'previous_secret' => 'encrypted',
+            'secret' => EncryptedSecret::class,
+            'previous_secret' => EncryptedSecret::class,
             'previous_secret_expires_at' => 'immutable_datetime',
             'status' => EndpointStatus::class,
             'disabled_at' => 'immutable_datetime',

@@ -17,6 +17,7 @@ weight: 64
 | Identifiers | ULIDs for every row; `webhook-id` carries one |
 | Timestamps | ISO 8601 with offset in the envelope; Unix seconds in signature headers |
 | JSON | `application/json`, UTF-8; response excerpts scrubbed to valid UTF-8 |
+| CloudEvents | 1.0, structured content mode, JSON event format and JSON batch format, for endpoints on the `cloudevents` envelope. Binary mode is not offered. Checked by the package's own tests against the required attributes, not by an external conformance suite |
 
 Deliberate deviations:
 

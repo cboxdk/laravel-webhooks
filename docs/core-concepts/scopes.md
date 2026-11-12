@@ -33,7 +33,19 @@ An event published in `Scope::of('org_1', 'eu')` is delivered to:
 - global endpoints (when allowed).
 
 An endpoint in `Scope::of('org_1')` (no partition) does *not* match: the partition is
-part of the identity, and `null` means "none", not "any".
+part of the identity, and `null` means "none", not "any". For an owner endpoint and an
+event with the same key:
+
+| Endpoint | Event | Delivered |
+| --- | --- | --- |
+| `Scope::of('org_1', 'eu')` | `Scope::of('org_1', 'eu')` | yes |
+| `Scope::of('org_1', 'eu')` | `Scope::of('org_1')` | no |
+| `Scope::of('org_1')` | `Scope::of('org_1', 'eu')` | no |
+| `Scope::of('org_1')` | `Scope::of('org_1')` | yes |
+
+`Scope::matches()` states the rule and the fan-out query implements it; a test holds
+the two together. Pick one shape per host and use it on both sides: register the
+endpoint and publish the event with the same partition, or with none.
 
 ## Lookups
 
