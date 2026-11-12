@@ -5,6 +5,8 @@ All notable changes to this package are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
 ### Breaking
 
 - **An owner endpoint without a partition no longer receives events published with
